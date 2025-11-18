@@ -64,7 +64,6 @@ parser.add_argument(
         help="Run a test job locally")
 args = parser.parse_args()
 
-
 out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/dally/displacedTaus/skim/{args.nanov}/prompt_mutau/v8/'
 out_folder_json = out_folder.replace('root://cmseos.fnal.gov/','/eos/uscms')
 custom_nano_v = args.nanov + '/'
@@ -237,6 +236,18 @@ class SkimProcessor(processor.ProcessorABC):
                        events.HLT.IsoMu24
         )
         events = events[trigger_mask]
+
+        ## NB: to be double checked if the string identifying the buggy DY dataset is correct
+        if is_MC and dataset == 'DYJetsToLL_M-50': 
+            lhe_part = events.LHEPart
+            outcoming = lhe_part[lhe_part.status > 0]
+            lhe_z = outcoming[(outcoming.status == 2) & (outcoming.pdgId==23)]
+            out_tau_tau = outcoming[(abs(outcoming.pdgId)==15)]
+            counts_tautau = ak.num(out_tau_tau, axis=1)  
+            mask_ztautau = (counts_tautau == 2)
+            mask_zll = ~mask_ztautau
+            events = events[mask_zll]
+#             print (f" Removed non zll events from {dataset}")
 
         # Define loose muons and electrons for Extra Lepton Veto
         loose_electron_mask = (
