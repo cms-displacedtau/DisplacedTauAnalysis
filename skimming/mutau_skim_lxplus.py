@@ -18,6 +18,7 @@ from collections import defaultdict
 import json
 
 from utils import process_n_files, is_rootcompat, is_good_hlt, is_included, uproot_writeable
+from selections.lumi_selections import select_lumis
 
 PFNanoAODSchema.warn_missing_crossrefs = False
 PFNanoAODSchema.mixins["DisMuon"] = "Muon"
@@ -25,7 +26,7 @@ PFNanoAODSchema.mixins["DisMuon"] = "Muon"
 parser = argparse.ArgumentParser(description="")
 parser.add_argument(
 	"--sample",
-	choices=['QCD','DY', 'signal', 'WtoLNu', 'Wto2Q', 'TT', 'singleT', 'all'],
+	choices=['QCD','DY', 'signal', 'WtoLNu', 'Wto2Q', 'TT', 'singleT', 'all', 'JetMET'],
 	nargs='*',
 	required=True,
 	help='Specify the sample you want to process')
@@ -70,6 +71,7 @@ samples = {
     "signal": f"samples.{custom_nano_v_p}fileset_signal",
     "TT": f"samples.{custom_nano_v_p}fileset_TT",
     "singleT": f"samples.{custom_nano_v_p}fileset_singleT",
+    "JetMET": f"samples.{custom_nano_v_p}fileset_JetMET_2022",
 }
 
 all_samples = args.sample
@@ -136,6 +138,10 @@ class SkimProcessor(processor.ProcessorABC):
 
     def process(self, events):
         
+        import sys
+        sys.path.append('.')
+        from lumi_selections import select_lumis
+
         if events is None: 
             return {
                 "entries_written": 0,
@@ -160,6 +166,17 @@ class SkimProcessor(processor.ProcessorABC):
         for run, lumi in sorted(run_lumi_list):
             run_dict[str(int(run))].append(int(lumi))
         dataset_run_dict[dataset] = dict(run_dict)
+
+        ## NB: to be double checked if the string identifying the buggy DY dataset is correct
+        if is_MC and dataset == 'DYJetsToLL_M-50': 
+            lhe_part = events.LHEPart
+            outcoming = lhe_part[lhe_part.status > 0]
+            lhe_z = outcoming[(outcoming.status == 2) & (outcoming.pdgId==23)]
+            out_tau_tau = outcoming[(abs(outcoming.pdgId)==15)]
+            counts_tautau = ak.num(out_tau_tau, axis=1)  
+            mask_ztautau = (counts_tautau == 2)
+            mask_zll = ~mask_ztautau
+            events = events[mask_zll]
 
         ## Trigger mask
         trigger_mask = (
@@ -270,7 +287,7 @@ if __name__ == "__main__":
                     },
                 job_extra={
                     '+JobFlavour': '"workday"',
-                    'transfer_input_files': 'utils.py',
+                    'transfer_input_files': 'utils.py,selections/lumi_selections.py',
                     'should_transfer_files': 'YES',
                     },
                 job_script_prologue=[
@@ -286,6 +303,8 @@ if __name__ == "__main__":
         cluster = LocalCluster(n_workers=8, threads_per_worker=1)
     
     client = Client(cluster)
+    client.upload_file('selections/lumi_selections.py')
+
     lxplus_run = processor.Runner(
         executor=processor.DaskExecutor(client=client, compression=None),
         chunksize=50_000,
