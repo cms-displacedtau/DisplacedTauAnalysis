@@ -1,9 +1,8 @@
 import json, pdb, glob, os
-import argparse
 from pathlib import Path
 
-
-parser = argparse.ArgumentParser(description="")
+from argparse import ArgumentParser
+parser = ArgumentParser(description="")
 parser.add_argument(
 	"--nanov",
 	choices=['Summer22_CHS_v10', 'Summer22_CHS_v7'],
@@ -21,7 +20,6 @@ parser.add_argument(
 	default='v0',
 	required=False,
 	help='If listing skimmed files, select which version of the inputs')
-
 args = parser.parse_args()
 
 processed_json_folder = f'/eos/cms/store/user/fiorendi/displacedTaus/skim/{args.nanov}/{args.skim}/{args.skimversion}/'
@@ -58,10 +56,13 @@ for isample in subsamples_list:
         track_summed_genw = set() ## faster than a list
 
         ls_sumw_filename = f'ls_sumw_dict_{isubsample}.json'
-        with open(f'samples/{args.nanov}/processed_LS_from_crab/{ls_sumw_filename}') as sumw_file:
+        with open(f'../skimming/samples/{args.nanov}/processed_LS_from_crab/{ls_sumw_filename}') as sumw_file:
             sumgenw_dict = json.load(sumw_file)
             ## this one above is a list of dictionaries with keys lumisections, sumgenw, ngen
           
+#             processed_lumis_list = list(processed_dict[isubsample][1])  # make a set for O(1) lookups
+            ## use set because there can be duplicates!
+            ## should add a warning message probably
             processed_lumis = set(processed_dict[isubsample][1])  # make a set for O(1) lookups
         
             for i, ibunch in enumerate(sumgenw_dict):
