@@ -10,7 +10,7 @@ from lpcjobqueue import LPCCondorCluster, schedd
 from dask import config as cfg
 from dask_jobqueue import HTCondorCluster
 cfg.set({'distributed.scheduler.worker-ttl': None}) # Check if this solves some dask issues
-#cfg.set({'distributed.scheduler.allowed-failures': 20}) # Check if this solves some dask issues
+cfg.set({'distributed.scheduler.allowed-failures': 20}) # Check if this solves some dask issues
 import fsspec_xrootd
 from  fsspec_xrootd import XRootDFileSystem
 
@@ -33,7 +33,7 @@ PFNanoAODSchema.mixins["DisMuon"] = "Muon"
 parser = argparse.ArgumentParser(description="")
 parser.add_argument(
 	"--sample",
-	choices=['QCD','DY', 'signal', 'WtoLNu', 'Wto2Q', 'TT', 'singleT', 'JetMET_2022', 'Muon'],
+	choices=['QCD','DY', 'signal', 'WtoLNu', 'Wto2Q', 'TT', 'singleT', 'JetMET_2022', 'Muon', 'DYEMu', 'DYTau'],
 	required=True,
 	help='Specify the sample you want to process')
 parser.add_argument(
@@ -65,7 +65,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/dally/displacedTaus/skim/{args.nanov}/mutau/v3/'
+out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/dally/displacedTaus/skim/{args.nanov}/mutau/v4/'
 out_folder_json = out_folder.replace('root://cmseos.fnal.gov/','/eos/uscms')
 custom_nano_v = args.nanov + '/'
 custom_nano_v_p = args.nanov + '.'
@@ -75,6 +75,8 @@ samples = {
     "WtoLNu": f"samples.{custom_nano_v_p}fileset_WtoLNu",
     "QCD": f"samples.{custom_nano_v_p}fileset_QCD",
     "DY": f"samples.{custom_nano_v_p}fileset_DY",
+    "DYEMu": f"samples.{custom_nano_v_p}fileset_DYEMu",
+    "DYTau": f"samples.{custom_nano_v_p}fileset_DYTau",
     "signal": f"samples.{custom_nano_v_p}fileset_signal",
     "TT": f"samples.{custom_nano_v_p}fileset_TT",
     "singleT": f"samples.{custom_nano_v_p}fileset_singleT",
@@ -92,6 +94,8 @@ else:
         "WtoLNu": f"samples.{custom_nano_v_p}fileset_WtoLNu",
         "QCD": f"samples.{custom_nano_v_p}fileset_QCD",
         "DY": f"samples.{custom_nano_v_p}fileset_DY",
+        "DYEMu": f"samples.{custom_nano_v_p}fileset_DYEMu",
+        "DYTau": f"samples.{custom_nano_v_p}fileset_DYTau",
         "signal": f"samples.{custom_nano_v_p}fileset_signal",
         "TT": f"samples.{custom_nano_v_p}fileset_TT",
         "singleT": f"samples.{custom_nano_v_p}fileset_singleT",
@@ -106,14 +110,17 @@ else:
 if args.subsample == 'all':
     fileset = input_dataset
 else:  
-    fileset = {k: input_dataset[k] for k in args.subsample}
+    with open(f"samples/{args.nanov}/{skim_folder}/{args.skimversion}/{args.subsample[0]}_preprocessed.pkl", "rb") as  f:
+        fileset = pickle.load(f)
+#else:  
+#    fileset = {k: input_dataset[k] for k in args.subsample}
 
     ## restrict to specific sub-samples
-    if args.subsample == 'all':
-        fileset.update(input_dataset)
-    else:  
-        fileset_tmp = {k: input_dataset[k] for k in args.subsample}
-        fileset.update(fileset_tmp)
+    #if args.subsample == 'all':
+    #    fileset.update(input_dataset)
+    #else:  
+    #    fileset_tmp = {k: input_dataset[k] for k in args.subsample}
+    #    fileset.update(fileset_tmp)
 
 
 ## restrict to n files
@@ -133,7 +140,7 @@ exclude_prefixes = ['Flag', 'JetSVs', 'GenJetAK8_', 'SubJet',
 include_prefixes = ['DisMuon',  'Muon',  'Jet',  'Tau',   'PFMET', 'MET' , 'ChsMET', 'PuppiMET',   'PV', 'GenPart',   'GenVisTau', 'GenVtx',
                     'nDisMuon', 'nMuon', 'nJet', 'nTau', 'nPFMET', 'nMET', 'nChsMET','nPuppiMET', 'nPV', 'nGenPart', 'nGenVisTau', 'nGenVtx',
                     'nVtx', 'event', 'run', 'luminosityBlock', 'Pileup', 'Rho', 'weight', 'genWeight', 'CandidateElectron', 'CandidateMuon', 'LooseJet',
-                    'DoubleMuon', 'DoubleElectron', 'RawPuppiMET', 'GenJet', 'dimuon'
+                    'DoubleMuon', 'DoubleElectron', 'RawPuppiMET', 'RawPFMET', 'GenJet', 'dimuon'
                    ]
 
 
@@ -205,6 +212,7 @@ class SkimProcessor(processor.ProcessorABC):
             mask_zll = ~mask_ztautau
             events = events[mask_zll]
             print (f" Removed non zll events from {dataset}")
+
         ## To reject bad crystal in ECAL 
         bad_event_mask = ((events.event >= 362433) & (events.event <= 367144) & (events.PFMET.pt > 100))
         bad_jet_mask = (
@@ -216,7 +224,7 @@ class SkimProcessor(processor.ProcessorABC):
         )
         
         num_bad_jets = ak.count_nonzero(bad_jet_mask, axis = 1)
-        events = events[(~bad_event_mask) & (num_bad_jets < 1)]
+        events = events[(~bad_event_mask) | (num_bad_jets < 1)]
 
         ## Trigger mask
         trigger_mask = (
@@ -243,25 +251,6 @@ class SkimProcessor(processor.ProcessorABC):
         ## could take them from SS
         ## veto on bjets?
           
-        good_muon_mask = (
-            (events.DisMuon.pt > 20)
-            & (abs(events.DisMuon.eta) < 2.4) # Acceptance of the CMS muon system
-        )
-        num_good_muons = ak.count_nonzero(good_muon_mask, axis=1)
-        sel_muons = events.DisMuon[good_muon_mask]
-        events['DisMuon'] = sel_muons
-        events = events[num_good_muons >= 1]
-
-        good_jet_mask = (
-            (events.Jet.pt > 20)
-            & (abs(events.Jet.eta) < 2.4)
-#             & ~(ak.all(events.Jet.constituents.pf.charge == 0, axis = -1)) 
-        )
-        num_good_jets = ak.count_nonzero(good_jet_mask, axis=1)
-        sel_jets = events.Jet[good_jet_mask]
-        events['Jet'] = sel_jets
-        events = events[num_good_jets >= 1]
-
         #Noise filter
         noise_mask = (
                      (events.Flag.goodVertices == 1) 
@@ -275,10 +264,40 @@ class SkimProcessor(processor.ProcessorABC):
                          )
         events = events[noise_mask] 
 
+        good_muon_mask = (
+            (events.DisMuon.pt > 20)
+            & (abs(events.DisMuon.eta) < 2.4) # Acceptance of the CMS muon system
+        )
+        num_good_muons = ak.count_nonzero(good_muon_mask, axis=1)
+        sel_muons = events.DisMuon[good_muon_mask]
+        events['DisMuon'] = sel_muons
+        events = events[num_good_muons >= 1]
+
+        good_jet_mask = (
+            (events.Jet.pt > 20)
+            & (abs(events.Jet.eta) < 2.4)
+        )
+        num_good_jets = ak.count_nonzero(good_jet_mask, axis=1)
+        sel_jets = events.Jet[good_jet_mask]
+        events['Jet'] = sel_jets
+        events = events[num_good_jets >= 1]
+
         charged_sel = events.Jet.constituents.pf.charge != 0
         dxy = ak.where(ak.all(events.Jet.constituents.pf.charge == 0, axis = -1), -999, ak.flatten(events.Jet.constituents.pf[ak.argmax(events.Jet.constituents.pf[charged_sel].pt, axis=2, keepdims=True)].d0, axis = -1))
         dxy = ak.fill_none(dxy, -999)
         events["Jet"] = ak.with_field(events.Jet, dxy, where = "dxy")
+
+        jet_id = (
+           (events.Jet.neHEF < 0.99) &
+           (events.Jet.neEmEF < 0.9) &
+           (events.Jet.chMultiplicity + events.Jet.neMultiplicity > 1) &
+           (events.Jet.chMultiplicity > 0) &
+           (events.Jet.muEF < 0.5) &
+           (events.Jet.chEmEF < 0.8)
+        )
+
+        events["Jet"] = ak.with_field(events.Jet, jet_id, "jetId")
+
         ## prevent writing out files with empty trees
         if not len(events) > 0:
             return {
@@ -321,21 +340,22 @@ if __name__ == "__main__":
     if not test_job:
         n_port = 8786
         cluster = LPCCondorCluster(
-                cores=24,
-                memory='48000MB',
+                cores= 2,
+                memory='12GB',
                 log_directory = "/uscmst1b_scratch/lpc1/3DayLifetime/condor/log/prompt_skim/v10",
                 transfer_input_files=['utils.py', './selections/lumi_selections.py'],
                )
         cluster.adapt(minimum=1, maximum=200)#, wait_count=3)
         print(cluster.job_script())
     else:    
-        cluster = LocalCluster(n_workers=4, threads_per_worker=1)
+        cluster = LocalCluster(n_workers=8, threads_per_worker=1)
     
     client = Client(cluster)
     client.upload_file('selections/lumi_selections.py')
+    client.get_task_stream()
+
     lxplus_run = processor.Runner(
         executor=processor.DaskExecutor(client=client, compression=None),
-        chunksize=50_000,
         skipbadfiles=True,
         schema=PFNanoAODSchema,
         savemetrics=True,

@@ -20,12 +20,11 @@ from  fsspec_xrootd import XRootDFileSystem
 import dask
 from dask import config as cfg
 cfg.set({'distributed.scheduler.worker-ttl': None}) # Check if this solves some dask issues
-cfg.set({'distributed.scheduler.allowed-failures': 30}) # Check if this solves some dask issues
+#cfg.set({'distributed.scheduler.allowed-failures': 30}) # Check if this solves some dask issues
 cfg.set({"distributed.logging.distributed": "debug"})
 from dask.distributed import Client, LocalCluster, wait, progress, performance_report
 #from dask_lxplus import CernCluster
 from lpcjobqueue import LPCCondorCluster, schedd 
-from dask import config as cfg
 from dask_jobqueue import HTCondorCluster
 import socket, time
 import dask_awkward as dak
@@ -33,7 +32,7 @@ import warnings
 warnings.filterwarnings("ignore", module="coffea") # Suppress annoying deprecation warnings for coffea vector, c.f. https://github.com/CoffeaTeam/coffea/blob/master/src/coffea/nanoevents/methods/candidate.py
 import logging
 
-from selection_function import event_selection, event_selection_hpstau_mu
+from selection_function import event_selection, event_selection_hpstau_mu, manual_blinding
 from utils import process_n_files, is_rootcompat, uproot_writeable_selected
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../input_jsons")))
@@ -45,7 +44,7 @@ parser.add_argument("-m"    , "--muon"    , dest = "leading_muon_type"   , help 
 parser.add_argument("-j"    , "--jet"     , dest = "leading_jet_type"    , help = "Leading jet variable"     , default = "disTauTag_score1")
 parser.add_argument(
 	"--sample",
-	choices=['QCD','DY', 'DYto2L-2Jets', 'DYto2Tau-2Jets_0J_custom', 'DYto2Tau-2Jets_0J', 'signal', 'WtoLNu', 'Wto2Q', 'TT', 'singleT', 'JetMET_2022', 'Muon'],
+	choices=['QCD','DY', 'DYto2L-2Jets', 'DYto2Tau-2Jets_0J_custom', 'DYto2Tau-2Jets_0J', 'signal', 'WtoLNu', 'Wto2Q', 'TT', 'singleT', 'JetMET_2022', 'Muon', 'DYEMu', 'DYTau'],
 	required=True,
 	help='Specify the sample you want to process')
 parser.add_argument(
@@ -109,7 +108,7 @@ else:
     exit(0)
     
 
-out_folder = f'root://cmseos.fnal.gov//store/user/dally/skim/{args.nanov}/{skim_folder}/{args.skimversion}/selected/{selection_string}/'
+out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/dally/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{selection_string}/'
 
 
 ## define input samples
@@ -121,16 +120,15 @@ if args.usePkl==True:
         #print(input_dataset.keys())
 else:
     samples = {
-        "Wto2Q": f"samples.{args.nanov}.{skim_folder}.fileset_Wto2Q",
-        "WtoLNu": f"samples.{args.nanov}.{skim_folder}.fileset_WtoLNu",
-        "QCD": f"samples.{args.nanov}.{skim_folder}.fileset_QCD",
-        "DY": f"samples.{args.nanov}.{skim_folder}.fileset_DY",
-        "DYto2L-2Jets": f"samples.{args.nanov}.{skim_folder}.fileset_DYto2L-2Jets",
-        "DYto2Tau-2Jets_0J": f"samples.{args.nanov}.{skim_folder}.fileset_DYto2Tau-2Jets_0J",
-        "DYto2Tau-2Jets_0J_custom": f"samples.{args.nanov}.{skim_folder}.fileset_DYto2Tau-2Jets_0J_custom",
-        "signal": f"samples.{args.nanov}.{skim_folder}.fileset_signal",
-        "TT": f"samples.{args.nanov}.{skim_folder}.fileset_TT",
-        "singleT": f"samples.{args.nanov}.{skim_folder}.fileset_singleT",
+        "Wto2Q": f"samples.{args.nanov}.{skim_folder}.{args.skimversion}.fileset_Wto2Q",
+        "WtoLNu": f"samples.{args.nanov}.{skim_folder}.{args.skimversion}.fileset_WtoLNu",
+        "QCD": f"samples.{args.nanov}.{skim_folder}.{args.skimversion}.fileset_QCD",
+        "DY": f"samples.{args.nanov}.{skim_folder}.{args.skimversion}.fileset_DY",
+        "DYEMu": f"samples.{args.nanov}.{skim_folder}.{args.skimversion}.fileset_DYEMu",
+        "DYTau": f"samples.{args.nanov}.{skim_folder}.{args.skimversion}.fileset_DYTau",
+        "signal": f"samples.{args.nanov}.{skim_folder}.{args.skimversion}.fileset_signal",
+        "TT": f"samples.{args.nanov}.{skim_folder}.{args.skimversion}.fileset_TT",
+        "singleT": f"samples.{args.nanov}.{skim_folder}.{args.skimversion}.fileset_singleT",
     }
     module = importlib.import_module(samples[args.sample])
     input_dataset = module.fileset  #['Stau_100_0p1mm'] 
@@ -140,7 +138,8 @@ else:
 if args.subsample == 'all':
     fileset = input_dataset
 else:  
-    fileset = {k: input_dataset[k] for k in args.subsample}
+    with open(f"samples/{args.nanov}/{skim_folder}/{args.skimversion}/{args.subsample[0]}_preprocessed.pkl", "rb") as  f:
+        fileset = pickle.load(f)
 
 ## restrict to n files
 process_n_files(int(args.nfiles), fileset)
@@ -154,13 +153,13 @@ include_prefixes  = ['DisMuon',  'Muon',  'Jet', 'GenPart', 'GenVisTau']
 include_postfixes = ['pt', 'eta', 'phi', 'pdgId', 'status', 'statusFlags', 'mass', 'dxy', 'charge', 'dz',
                      'mediumId', 'tightId', 'nTrackerLayers', 'tkRelIso', 'pfRelIso03_all', 'pfRelIso03_chg',
                      'disTauTag_score1', 'rawFactor', 'nConstituents',
-                     'genPartIdxMother'
+                     'genPartIdxMother', 'mT',
                     ]                       
 include_all = ['Tau',  'PFMET',  'ChsMET', 'PuppiMET',         'GenVtx',
                'nTau', 'nPFMET', 'nChsMET','nPuppiMET', 'nPV', 'nGenVtx',
                'nVtx', 'event', 'run', 'luminosityBlock', 'Pileup', 'weights', 'genWeight', 'weight', 'HLT',
                'nDisMuon', 'nMuon', 'nJet',  'nGenPart', 'nGenVisTau', 'Stau', 'StauTau', 'mT', 'PV', 'mutau_mass',
-               'CorrectedPuppiMET', 'CorrectedJet', 'n_muons'
+               'CorrectedPFMET', 'CorrectedJet', 'n_muons', 'n_jets'
               ]
 
 ### FIXME: need to add Lxy and IP at GEN level                             
@@ -249,6 +248,8 @@ class SelectionProcessor(processor.ProcessorABC):
 
         n_muons = ak.count_nonzero(events.DisMuon.pt, axis = -1)
         events = ak.with_field(events, n_muons, "n_muons")
+        n_jets = ak.count_nonzero(events.Jet.pt, axis = -1)
+        events = ak.with_field(events, n_jets, "n_jets")
 
        # JEC/JERC
         if is_MC:
@@ -296,10 +297,10 @@ class SelectionProcessor(processor.ProcessorABC):
 
             events = ak.with_field(events, corrected_jets, "CorrectedJet")
 
-            puppi_met = events.PuppiMET
-            puppi_met['pt_raw'] = events.RawPuppiMET.pt
-            puppi_met['unclustEDeltaX'] = puppi_met.ptUnclusteredUp * np.cos(puppi_met.phiUnclusteredUp)
-            puppi_met['unclustEDeltaY'] = puppi_met.ptUnclusteredUp * np.sin(puppi_met.phiUnclusteredUp)
+            pf_met = events.PFMET
+            pf_met['pt_raw'] = events.RawPFMET.pt
+            pf_met['unclustEDeltaX'] = pf_met.ptUnclusteredUp * np.cos(pf_met.phiUnclusteredUp)
+            pf_met['unclustEDeltaY'] = pf_met.ptUnclusteredUp * np.sin(pf_met.phiUnclusteredUp)
 
             met_name_map = {}
             met_name_map['METpt'] = 'pt'
@@ -311,11 +312,11 @@ class SelectionProcessor(processor.ProcessorABC):
             met_name_map['UnClusteredEnergyDeltaY'] = 'unclustEDeltaY'
 
             met_factory = CorrectedMETFactory(met_name_map)
-            CorrectedPuppiMET = met_factory.build(puppi_met, corrected_jets)
-            events = ak.with_field(events, CorrectedPuppiMET, "CorrectedPuppiMET")
+            CorrectedPFMET = met_factory.build(pf_met, corrected_jets)
+            events = ak.with_field(events, CorrectedPFMET, "CorrectedPFMET")
 
         else:
-            print("Are we going through the data correction loop?")
+            #print("Are we going through the data correction loop?")
             ext = extractor()
             ext.add_weight_sets([
                 "* * ./jec/Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt",
@@ -351,12 +352,15 @@ class SelectionProcessor(processor.ProcessorABC):
             name_map['massRaw'] = 'mass_raw'
             name_map['Rho'] = 'Rho'
 
+            jet_factory = CorrectedJetsFactory(name_map, jec_stack)
+            corrected_jets = jet_factory.build(jets)
+
             events = ak.with_field(events, corrected_jets, "CorrectedJet")
             
-            puppi_met = events.PuppiMET
-            puppi_met['pt_raw'] = events.RawPuppiMET.pt
-            puppi_met['unclustEDeltaX'] = puppi_met.ptUnclusteredUp * np.cos(puppi_met.phiUnclusteredUp)
-            puppi_met['unclustEDeltaY'] = puppi_met.ptUnclusteredUp * np.sin(puppi_met.phiUnclusteredUp)
+            pf_met = events.PFMET
+            pf_met['pt_raw'] = events.RawPFMET.pt
+            pf_met['unclustEDeltaX'] = pf_met.ptUnclusteredUp * np.cos(pf_met.phiUnclusteredUp)
+            pf_met['unclustEDeltaY'] = pf_met.ptUnclusteredUp * np.sin(pf_met.phiUnclusteredUp)
 
             met_name_map = {}
             met_name_map['METpt'] = 'pt'
@@ -368,8 +372,8 @@ class SelectionProcessor(processor.ProcessorABC):
             met_name_map['UnClusteredEnergyDeltaY'] = 'unclustEDeltaY'
 
             met_factory = CorrectedMETFactory(met_name_map)
-            CorrectedPuppiMET = met_factory.build(puppi_met, corrected_jets)
-            events = ak.with_field(events, CorrectedPuppiMET, "CorrectedPuppiMET")
+            CorrectedPFMET = met_factory.build(pf_met, corrected_jets)
+            events = ak.with_field(events, CorrectedPFMET, "CorrectedPFMET")
 
         ## IMPORTANT
         ## do we need to add selections before choosing the leading obj?
@@ -462,29 +466,34 @@ class SelectionProcessor(processor.ProcessorABC):
             events = event_selection_hpstau_mu(events, selection_string)
         else:
             dismuons = events.DisMuon
+            dismuons = dismuons[dismuons.mediumId == True]
             dismuons = dismuons[ak.argsort(dismuons[leading_muon_var], ascending=False, axis=1)]
             dismuons = ak.singletons(ak.firsts(dismuons))
             events["DisMuon"] = dismuons
+            num_muon = ak.count_nonzero(events["DisMuon"][leading_muon_var], axis = 1)
+
             correctedjets = events["CorrectedJet"]
-            correctedjets =  correctedjets[ak.argsort(correctedjets[leading_jet_var], ascending=False, axis = 1)]
+            correctedjets = correctedjets[correctedjets.jetId == True]
+            correctedjets = correctedjets[ak.argsort(correctedjets[leading_jet_var], ascending=False, axis = 1)]
             correctedjets = ak.singletons(ak.firsts(correctedjets))
             events["CorrectedJet"] = correctedjets
+            num_jets = ak.count_nonzero(events["CorrectedJet"][leading_jet_var], axis = 1)
 
-            jets = events["Jet"]
-            jets =  jets[ak.argsort(jets[leading_jet_var], ascending=False, axis = 1)]
-            jets = ak.singletons(ak.firsts(jets))
-            events["Jet"] = jets
+            events = events[(num_muon > 0) & (num_jets > 0)]
 
-            # add transverse mass var
-            met = events.CorrectedPuppiMET.pt            
-            met_phi =  events.CorrectedPuppiMET.phi        
-            dphi = abs(dismuons.phi - met_phi)
-            dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)  # wrap to [-pi, pi]
-            mT = np.sqrt(2 * dismuons.pt * met * (1 - np.cos(dphi)))      
+            met = events.CorrectedPFMET.pt
+            met_phi = events.CorrectedPFMET.phi
+            dphi = abs(events.DisMuon.phi - met_phi)
+            dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)
+            mT = np.sqrt(2 * events.DisMuon.pt * met * (1 - np.cos(dphi)))
             events["DisMuon"] = ak.with_field(events.DisMuon, mT, "mT")
-            
+
             ## apply selections
             events = event_selection(events, selection_string)  
+
+            if not is_MC:
+                if 'SR' not in args.selection and "PR" not in args.selection:
+                    events = manual_blinding(events)
 
         logger.info(f"Chose leading objects & filtered events")
 
@@ -500,6 +509,7 @@ class SelectionProcessor(processor.ProcessorABC):
 
 
         ## prevent writing out files with empty trees
+        print(len(events))
         if not len(events) > 0:
             return {
                 "entries_written": 0,
@@ -533,8 +543,8 @@ if __name__ == "__main__":
     if not test_job:
         n_port = 8786
         cluster = LPCCondorCluster(
-                cores=24,
-                memory='48000MB',
+                cores=4,
+                memory='10GB',
                 log_directory = f"/uscmst1b_scratch/lpc1/3DayLifetime/condor/log/selected/{args.skimversion}",
                 transfer_input_files = ["selection_function.py", "utils.py", "Cert_Collisions2022_355100_362760_Golden.json", "jec/"],
                 job_extra_directives={
@@ -548,7 +558,7 @@ if __name__ == "__main__":
                 ],
                 )
          #minimum > 0: https://github.com/CoffeaTeam/coffea/issues/465
-        cluster.adapt(minimum=1, maximum=200)
+        cluster.adapt(minimum=0, maximum=200)
         print(cluster.job_script())
     
     else:
@@ -557,17 +567,17 @@ if __name__ == "__main__":
     client = Client(cluster)
     lxplus_run = processor.Runner(
         executor=processor.DaskExecutor(client=client, compression=None),
-        chunksize=30_000,
-        skipbadfiles=True,
         schema=PFNanoAODSchema,
         savemetrics=True,
+        xrootdtimeout=300,
     )
     
     out, proc_report = lxplus_run(
         fileset,
         treename="Events",
         processor_instance=SelectionProcessor(args.leading_muon_type, args.leading_jet_type, mode_string),
-        uproot_options={"allow_read_errors_with_report": (OSError, KeyError)}
+        uproot_options={"allow_read_errors_with_report": (OSError, KeyError),
+                        }
     )
 
     elapsed = time.time() - tic 
