@@ -1,5 +1,7 @@
 import os
 import json
+import hist
+from hist import Hist
 import numpy as np
 import awkward as ak
 import matplotlib as mpl
@@ -11,6 +13,8 @@ from coffea.lumi_tools import LumiMask
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema, PFNanoAODSchema
 import pdb, glob
 
+print(hep.__version__)
+
 PFNanoAODSchema.warn_missing_crossrefs = False
 PFNanoAODSchema.mixins["DisMuon"] = "Muon"
 
@@ -19,47 +23,42 @@ hep.style.use("CMS")
 nanov = 'Summer22_CHS_v10/'
 # nanov = ''
 #sample_folder = f"/eos/uscms/store/user/dally/skim/{nanov}prompt_mutau/v8/selected/faster_trial/"
-sample_folder = f"/eos/uscms/store/user/dally/skim/{nanov}mutau/v3/selected/W_CR/faster_trial/"
-
+#sample_folder = f"/eos/uscms/store/user/dally/skim/{nanov}mutau/v3/selected/W_CR/faster_trial/"
+sample_folder = f"/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v4/TT_CR/faster_trial/"
 ## if a sample is not ready yet, comment it out
 all_samples_dict = {
     "DY" : [
         "DYJetsToLL_M-50",
-        #'DYto2L-2Jets_MLL-50',
-        "DYto2Tau-2Jets_MLL-50_0J",
+        #"DYto2Tau-2Jets_MLL-50_0J",
         "DYto2Tau-2Jets_MLL-50_1J",
         "DYto2Tau-2Jets_MLL-50_2J",
     ],
     "QCD" : [
-##       "QCD_PT-50to80",
+        #"QCD_PT-50to80",
         #"QCD_PT-80to120",
-        #"QCD_PT-120to170",
+        "QCD_PT-120to170",
         "QCD_PT-170to300",
         "QCD_PT-300to470",
-#        "QCD_PT-470to600",
-#        "QCD_PT-600to800",
+        "QCD_PT-470to600",
+        "QCD_PT-600to800",
         "QCD_PT-800to1000",
         "QCD_PT-1000to1400",
         "QCD_PT-1400to1800",
-##        "QCD_PT-1800to2400",
-        #"QCD_PT-3200",
+        "QCD_PT-1800to2400",
+        "QCD_PT-3200",
      ],
     "Wto2Q" : [
         #"Wto2Q-2Jets_PTQQ-100to200_1J",
-##        "Wto2Q-2Jets_PTQQ-100to200_2J",
-        #"Wto2Q-2Jets_PTQQ-200to400_1J",
+        #"Wto2Q-2Jets_PTQQ-100to200_2J",
+        "Wto2Q-2Jets_PTQQ-200to400_1J",
         "Wto2Q-2Jets_PTQQ-200to400_2J",
-        #"Wto2Q-2Jets_PTQQ-400to600_1J",
+        "Wto2Q-2Jets_PTQQ-400to600_1J",
         "Wto2Q-2Jets_PTQQ-400to600_2J",
         #"Wto2Q-2Jets_PTQQ-600_1J",
         #"Wto2Q-2Jets_PTQQ-600_2J",
      ],
     "WtoLNu" : [
         "WtoLNu-4Jets",
-##         "WtoLNu-2Jets_0J",
-##        "WtoLNu-2Jets_1J",
-##         "WtoLNu-2Jets_2J",
-##        "WtoLNu-4Jets_3J",
       ],
     "TT" : [
       "TTto2L2Nu", 
@@ -75,9 +74,9 @@ all_samples_dict = {
       "TbarBQ_t-channel_4FS",
       ],  
     "JetMET": [
-      "JetMET_Run2022E",
-      "JetMET_Run2022F",
-      "JetMET_Run2022G",
+      #"JetMET_Run2022E",
+      #"JetMET_Run2022F",
+      #"JetMET_Run2022G",
       ], 
     #"JetMET_Muon": [
     #  "JetMET_Muon_Run2022E",
@@ -157,7 +156,7 @@ histogram_dict = {}
 binning_dict = {}
 
 for process in available_processes:
-    # print(process)
+    print(process)
     tmp_string = f"faster_trial_{process}/faster_trial_{process}.root"
     tmp_file = sample_folder +  tmp_string
     events = NanoEventsFactory.from_root({tmp_file:"Events"}, schemaclass= PFNanoAODSchema).events()
@@ -166,15 +165,12 @@ for process in available_processes:
     #mutau_dr = events.Muon.metric_table(events.Tau)
     #mutau_pt = events.Muon.pt + events.Tau.pt
 
-    #met = events.PuppiMET.pt
-    #met_phi = events.PuppiMET.phi
-    #if "Muon" not in process:
-    #    met = events.CorrectedPuppiMET.pt
-    #    met_phi = events.CorrectedPuppiMET.phi
-    #dphi = abs(events.Tau.phi - met_phi)
+    #met = events.CorrectedPuppiMET.pt
+    #met_phi = events.CorrectedPuppiMET.phi
+    #dphi = abs(events.DisMuon.phi - met_phi)
     #dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)
-    #mT = np.sqrt(2 * events.Muon.pt * met * (1 - np.cos(dphi)))
-    #events = ak.with_field(events, mT, "Puppi_mT")
+    #mT = np.sqrt(2 * events.DisMuon.pt * met * (1 - np.cos(dphi)))
+    #events["DisMuon"] = ak.with_field(events.DisMuon, mT, "mT")
 
     #events["mutau"] = ak.with_field(events.mutau, mutau_dr, where = 'dR')
     #events["mutau"] = ak.with_field(events.mutau, mutau_pt, where = 'pt') 
@@ -186,11 +182,6 @@ for process in available_processes:
 
     pt_raw = (1 - events.Jet.rawFactor) * events.Jet.pt
     events["Jet"] = ak.with_field(events.Jet, pt_raw, "ptRaw")
-
-    dphi = abs(events.DisMuon.phi - events.CorrectedPuppiMET.phi)
-    dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)
-    mT = np.sqrt(2 * events.DisMuon.pt * events.CorrectedPuppiMET.pt * (1 - np.cos(dphi)))
-    events["DisMuon"] = ak.with_field(events.DisMuon, mT, "mT")
 
     weights = events.run / events.run
     if "jetmet" in process.lower():
@@ -204,7 +195,7 @@ for process in available_processes:
 
     for plot_name, settings in plot_settings.items():
         if "weight" in plot_name: continue
-        #if "Jet_pt" not in plot_name: continue
+        if "CorrectedJet_pt" not in plot_name: continue
         if "correction" in plot_name: continue
         if "resolution" in plot_name: continue
         #if 'dxy' not in plot_name: continue
@@ -215,7 +206,9 @@ for process in available_processes:
             vals_flat = ak.flatten(var_values)
             weights_broadcast = ak.broadcast_arrays(var_values, weights)[1]
             weights_flat = ak.flatten(weights_broadcast)
-            hist, _ = np.histogram(vals_flat, weights=weights_flat, bins=np.linspace(*settings["binning_linspace"]))
+            #hist, _ = np.histogram(vals_flat, weights=weights_flat, bins=np.linspace(*settings["binning_linspace"]))
+            histo = Hist(hist.axis.Regular(settings["binning_linspace"][-1] - 1, settings["binning_linspace"][0], settings["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+            histo.fill(vals_flat, weight=weights_flat)
 
         else:
             if settings["variable"] == "":
@@ -233,7 +226,7 @@ for process in available_processes:
         if process not in histogram_dict[plot_name]:
             histogram_dict[plot_name][process] = []
 
-        histogram_dict[plot_name][process].append(hist)
+        histogram_dict[plot_name][process].append(histo.values(flow=True))
 
         if plot_name not in binning_dict:
             binning_dict[plot_name] = {}
@@ -252,21 +245,22 @@ for plot_name, histograms in histogram_dict.items():
     do_stack = not plot_settings[plot_name].get("density")
     # if args.groupProcesses:
     if groupProcesses:
-        hist_Sig       = np.zeros(len(binning)-1)
-        hist_Wto2Q     = np.zeros(len(binning)-1)
-        hist_WtoLNu    = np.zeros(len(binning)-1)
-        hist_EWK       = np.zeros(len(binning)-1)
-        hist_TT        = np.zeros(len(binning)-1)
-        hist_singleT   = np.zeros(len(binning)-1)
-        hist_Top   = np.zeros(len(binning)-1)
-        hist_WJets   = np.zeros(len(binning)-1)
-        hist_QCD       = np.zeros(len(binning)-1)
-        hist_Data      = np.zeros(len(binning)-1)
+        hist_Sig       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_Wto2Q     = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_WtoLNu    = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_EWK       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_TT        = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_singleT   = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_Top   = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_WJets   = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_QCD       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_Data      = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         #hist_Data_Muon      = np.zeros(len(binning)-1)
         #hist_Data_None      = np.zeros(len(binning)-1)
         #hist_Data_E      = np.zeros(len(binning)-1)
         #hist_Data_F      = np.zeros(len(binning)-1)
         #hist_Data_G      = np.zeros(len(binning)-1)
+    print(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1])
     
     hists_to_plot = []
     data_hists = []
@@ -323,8 +317,6 @@ for plot_name, histograms in histogram_dict.items():
     # print (hist_EWK)
     if groupProcesses:
      #if args.groupProcesses:
-        hists_to_plot.append(hist_QCD)
-        labels.append('QCD')
         hists_to_plot.append(hist_Wto2Q)
         labels.append('Wto2Q')
         hists_to_plot.append(hist_WtoLNu)
@@ -335,6 +327,8 @@ for plot_name, histograms in histogram_dict.items():
         labels.append('TT')
         hists_to_plot.append(hist_EWK)
         labels.append('DY')
+        hists_to_plot.append(hist_QCD)
+        labels.append('QCD')
         #hists_to_plot.append(hist_DYTau_0)
         #labels.append('DYtoTauTau_0Jets')
         #hists_to_plot.append(hist_DYTau_1)
@@ -358,40 +352,46 @@ for plot_name, histograms in histogram_dict.items():
 
     colours = ["#5790fc", "#f89c20", "#e42536", "#964a8b", "#9c9ca1", "#7a21dd", "#FF99C9", "#C8E9A0", "#6DD3CE",] #"#127475", "#FF99C9"]
     
-    fig, (ax_main, ax_ratio) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    #fig, (ax_main, ax_ratio) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    fig, ax_main = plt.subplots(1, 1, sharex=True)
     fig.subplots_adjust(hspace=0.0)
-    hep.histplot(hists_to_plot, bins=binning, stack=do_stack, histtype='fill', 
+    hep.histplot(hists_to_plot, #bins=binning, 
+                 stack=do_stack, 
+                 histtype = 'fill',
                  label=labels, #color=colours, #sort='label_r', 
+                 flow = 'show',
                  density=plot_settings[plot_name].get("density"), ax=ax_main)
-    hep.histplot(data_hists, xerr=True, bins=binning, stack=False, histtype='errorbar', 
-                  color='black', label='data', density=plot_settings[plot_name].get("density"), ax=ax_main)
+    #hep.histplot(data_hists, xerr=True, bins=binning, stack=False, histtype='errorbar', 
+    #              color='black', label='data', density=plot_settings[plot_name].get("density"), ax=ax_main,
+    #             flow = 'show',)
     #hep.histplot(data_muon_hists, xerr=True, bins=binning, stack=False, histtype='errorbar', 
     #              color='red', label='JetMET Muon Triggers Only', density=plot_settings[plot_name].get("density"), ax=ax_main)
     #hep.histplot(data_hists, bins=binning, stack=do_stack, histtype='fill', 
     #              label=data_labels, density=plot_settings[plot_name].get("density"), ax=ax_main)
     ax_main.set_ylabel(plot_settings[plot_name].get("ylabel"))
+    ax_main.set_xlabel(plot_settings[plot_name].get("xlabel"), usetex=False)
     ax_main.legend()
     
     ## this part is still to be done 
-    if groupProcesses:
+    #if groupProcesses:
     # # # if args.groupProcesses:
-        sum_histogram = np.sum(np.asarray(hists_to_plot), axis=0)
-        sum_data_histogram = np.sum(np.asarray(data_hists), axis=0)
-        ratio_hist = sum_data_histogram / (sum_histogram + np.finfo(float).eps)
-    # #     # Adding relative sqrtN Poisson uncertainty for now, should be improved when using the hist package
-        rel_unc = np.sqrt(sum_data_histogram) / sum_data_histogram
-        rel_unc *= ratio_hist
-        rel_unc[rel_unc < 0] = 0 # Not exactly sure why we have negative values, but this solves it for the moment
-        hep.histplot(ratio_hist, bins=binning, histtype='errorbar', yerr=rel_unc, color='black', label='Ratio', ax=ax_ratio)
-        ax_ratio.axhline(1, color='gray', linestyle='--')
-    ax_ratio.set_xlabel(plot_settings[plot_name].get("xlabel"), usetex=False)
+    #    sum_histogram = np.sum(np.asarray(hists_to_plot), axis=0)
+    #    sum_data_histogram = np.sum(np.asarray(data_hists), axis=0)
+    #    ratio_hist = sum_data_histogram / (sum_histogram + np.finfo(float).eps)
+    ## #     # Adding relative sqrtN Poisson uncertainty for now, should be improved when using the hist package
+    #    rel_unc = np.sqrt(sum_data_histogram) / sum_data_histogram
+    #    rel_unc *= ratio_hist
+    #    rel_unc[rel_unc < 0] = 0 # Not exactly sure why we have negative values, but this solves it for the moment
+    #    hep.histplot(ratio_hist, bins=binning, histtype='errorbar', yerr=rel_unc, color='black', label='Ratio', flow = 'show', ax=ax_ratio)
+    #    ax_ratio.axhline(1, color='gray', linestyle='--')
     ax_main.xaxis.set_major_locator(MultipleLocator(plot_settings[plot_name].get("x_major_ticks")))
     ax_main.xaxis.set_minor_locator(MultipleLocator(plot_settings[plot_name].get("x_minor_ticks")))
-    ax_ratio.xaxis.set_major_locator(MultipleLocator(plot_settings[plot_name].get("x_major_ticks")))
-    ax_ratio.xaxis.set_minor_locator(MultipleLocator(plot_settings[plot_name].get("x_minor_ticks")))
-    ax_ratio.set_ylabel('Data / MC')
-    ax_ratio.set_xlim(binning[0], binning[-1])
-    ax_ratio.set_ylim(0.6, 1.4)
+    #ax_ratio.xaxis.set_major_locator(MultipleLocator(plot_settings[plot_name].get("x_major_ticks")))
+    #ax_ratio.xaxis.set_minor_locator(MultipleLocator(plot_settings[plot_name].get("x_minor_ticks")))
+    #ax_ratio.set_ylabel('Data / MC')
+    #ax_ratio.set_xlim(binning[0], binning[-1])
+    #ax_ratio.set_ylim(0.6, 1.4)
+    #ax_ratio.set_xlabel(plot_settings[plot_name].get("xlabel"), usetex=False)
     
     # Decorating with CMS label
     hep.cms.label(data=True, loc=0, label="Private Work", com=13.6, lumi=round(target_lumi, 1), ax=ax_main)
@@ -399,7 +399,7 @@ for plot_name, histograms in histogram_dict.items():
     
     # Saving with special name
     #filename = f"/eos/uscms/store/user/dally/DisplacedTauAnalysis/plots/{dataset_name}_{plot_name}"
-    filedir = "W_CR"
+    filedir = "TT_CR"
     if filedir not in os.listdir('plots/'):
         os.mkdir(f'plots/{filedir}')
     filename = f"./plots/{filedir}/{dataset_name}_{plot_name}"
