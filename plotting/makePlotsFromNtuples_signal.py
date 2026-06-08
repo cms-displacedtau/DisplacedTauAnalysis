@@ -16,15 +16,18 @@ import pdb, glob
 
 PFNanoAODSchema.warn_missing_crossrefs = False
 PFNanoAODSchema.mixins["DisMuon"] = "Muon"
+PFNanoAODSchema.mixins["CorrectedJet"] = "Jet"
+PFNanoAODSchema.mixins["JetPFCands"] = "Jet"
+PFNanoAODSchema.mixins["PFCands"] = "Jet"
 
 hep.style.use("CMS")
 
-nanov = 'Summer22_CHS_v10/'
+nanov = 'Summer22_CHS_v19/'
 # nanov = ''
 #sample_folder = f"/eos/uscms/store/user/dally/skim/{nanov}prompt_mutau/v8_nobJetVeto/selected/faster_trial/"
 #sample_folder = f"/eos/uscms/store/user/dally/skim/{nanov}mutau/v3_CorrectedJet/selected/faster_trial/"
 #sample_folder = f"/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v3/QCD_CR/faster_trial/"
-sample_folder = f"/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v4/W_CR/faster_trial/"
+sample_folder = f"/eos/uscms/store/user/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v19/mutau/v8/PR_score/faster_trial/"
 normalize = False
 
 #if "PR" in sample_folder:
@@ -33,13 +36,13 @@ normalize = False
 ## if a sample is not ready yet, comment it out
 all_samples_dict = {
     "DY" : [
-        "DYJetsToLL_M-50",
-        "DYto2Tau-2Jets_MLL-50_0J",
-        "DYto2Tau-2Jets_MLL-50_1J",
-        "DYto2Tau-2Jets_MLL-50_2J",
+        #"DYJetsToLL_M-50",
+        #"DYto2Tau-2Jets_MLL-50_0J",
+        #"DYto2Tau-2Jets_MLL-50_1J",
+        #"DYto2Tau-2Jets_MLL-50_2J",
       ],
     "QCD" : [
-        #"QCD_PT-50to80",
+        "QCD_PT-50to80",
         "QCD_PT-80to120",
         "QCD_PT-120to170",
         "QCD_PT-170to300",
@@ -54,68 +57,93 @@ all_samples_dict = {
         "QCD_PT-3200",
      ],
     "TT" : [
-      "TTto2L2Nu", 
-      "TTtoLNu2Q", 
-      "TTto4Q"
+      #"TTto2L2Nu", 
+      #"TTtoLNu2Q", 
+      #"TTto4Q"
       ],
     "singleT": [
-      "TbarWplustoLNu2Q",
-      "TbarWplusto2L2Nu",
-      "TWminusto2L2Nu",
-      "TBbarQ_t-channel_4FS",
-      "TWminustoLNu2Q",
-      "TbarBQ_t-channel_4FS",
+      #"TbarWplustoLNu2Q",
+      #"TbarWplusto2L2Nu",
+      #"TWminusto2L2Nu",
+      #"TWminustoLNu2Q",
+      #"TBbarQ_t-channel_4FS",
+      #"TbarBQ_t-channel_4FS",
       ],  
     "Wto2Q" : [
-       "Wto2Q-2Jets_PTQQ-100to200_1J",
+        #"Wto2Q-2Jets_PTQQ-100to200_1J",
         #"Wto2Q-2Jets_PTQQ-100to200_2J",
-        "Wto2Q-2Jets_PTQQ-200to400_1J",
-        "Wto2Q-2Jets_PTQQ-200to400_2J",
-        "Wto2Q-2Jets_PTQQ-400to600_1J",
-        "Wto2Q-2Jets_PTQQ-400to600_2J",
-        "Wto2Q-2Jets_PTQQ-600_1J",
-        "Wto2Q-2Jets_PTQQ-600_2J",
+        #"Wto2Q-2Jets_PTQQ-200to400_1J",
+        #"Wto2Q-2Jets_PTQQ-200to400_2J",
+        #"Wto2Q-2Jets_PTQQ-400to600_1J",
+        #"Wto2Q-2Jets_PTQQ-400to600_2J",
+        #"Wto2Q-2Jets_PTQQ-600_1J",
+        #"Wto2Q-2Jets_PTQQ-600_2J",
      ],
     "WtoLNu" : [
-        "WtoLNu-4Jets",
+        #"WtoLNu-4Jets",
       ],
     "Stau_500" : [
-        "Stau_500_0p01mm",
-        "Stau_500_0p1mm",
-        "Stau_500_1mm",
-        "Stau_500_10mm",
-        "Stau_500_100mm",
-        "Stau_500_1000mm",
+#        "Stau_500_0p01mm",
+#        "Stau_500_0p1mm",
+#        "Stau_500_1mm",
+#        "Stau_500_5mm",
+#        "Stau_500_10mm",
+#        "Stau_500_50mm",
+#        "Stau_500_100mm",
+#        "Stau_500_1000mm",
+    ],
+    "Stau_400" : [
+#        "Stau_400_0p01mm",
+#        "Stau_400_0p1mm",
+#        "Stau_400_1mm",
+#        "Stau_400_5mm",
+#        "Stau_400_10mm",
+#        "Stau_400_50mm",
+#        "Stau_400_100mm",
+#        "Stau_400_1000mm",
     ],
     "Stau_300" : [
-        "Stau_300_0p01mm",
-        "Stau_300_0p1mm",
-        "Stau_300_1mm",
-        "Stau_300_10mm",
-        "Stau_300_100mm",
-        "Stau_300_1000mm",
+#        "Stau_300_0p01mm",
+#        "Stau_300_0p1mm",
+#        "Stau_300_1mm",
+#        "Stau_300_5mm",
+#        "Stau_300_10mm",
+#        "Stau_300_50mm",
+#        "Stau_300_100mm",
+#        "Stau_300_1000mm",
     ],
     "Stau_200" : [
-        "Stau_200_0p01mm",
-        "Stau_200_0p1mm",
-        "Stau_200_1mm",
-        "Stau_200_10mm",
-        "Stau_200_100mm",
-        "Stau_200_1000mm",
+#        "Stau_200_0p01mm",
+#        "Stau_200_0p1mm",
+#        "Stau_200_1mm",
+#        "Stau_200_5mm",
+#        "Stau_200_10mm",
+#        "Stau_200_100mm",
+#        "Stau_200_1000mm",
     ],
     "Stau_100" : [
-        "Stau_100_0p01mm",
-        "Stau_100_0p1mm",
-        "Stau_100_1mm",
-        "Stau_100_10mm",
-        "Stau_100_100mm",
-        "Stau_100_1000mm",
+#        "Stau_100_0p01mm",
+#        "Stau_100_0p1mm",
+#        "Stau_100_1mm",
+#        "Stau_100_5mm",
+#        "Stau_100_10mm",
+#        "Stau_100_50mm",
+#        "Stau_100_100mm",
+#        "Stau_100_1000mm",
     ],
 }
 
-signal_mass = ['100', '200', '300', '500']
-signal_lifetime = ['0p01mm', '0p1mm', '1mm', '10mm', '100mm', '1000mm']
+signal_mass = ['100', '200', '300', '400', '500']
+signal_lifetime = ['1mm', '5mm', '10mm', '50mm', '100mm', '1000mm']
+QCD_subsamp = {}
+for samp in all_samples_dict:
+    if samp == "QCD":
+        for subsamp in all_samples_dict[samp]:
+            QCD_subsamp[subsamp] = []
+            QCD_subsamp[subsamp].append(subsamp)
 
+#del all_samples_dict["QCD"]
+all_samples_dict = all_samples_dict | QCD_subsamp   
 
 ## build reverse lookup dict to be used when retrieving sum gen events etc
 reverse_samples_lookup = {
@@ -133,11 +161,13 @@ xsec = xsec_and_br['xsec']
 br = xsec_and_br['br']
 
 ## load sum_gen_w from another JSON file
-with open(f"./plots_config/{nanov}/v8/all_total_sumw.json", "r") as file:
+with open(f"./plots_config/{nanov}/mutau/v8/all_total_sumw.json", "r") as file:
     sum_gen_w = json.load(file)
     
 ## target lumi, for now fixed value
-target_lumi = 26.7
+#target_lumi = 26.7
+## Lumi for all of Run3
+target_lumi = 324.75
 
 # int_lumi = ak.from_parquet("../sample_processing/my_skimData2018C").intLumi[0]
 #print(int_lumi)
@@ -171,7 +201,39 @@ for process in available_processes:
     tmp_string = f"faster_trial_{process}/faster_trial_{process}.root"
     tmp_file = sample_folder +  tmp_string
     events = NanoEventsFactory.from_root({tmp_file:"Events"}, schemaclass= PFNanoAODSchema).events()
-    events = events[events.CorrectedPFMET.pt > 105]
+    events = events[ak.flatten(abs(events.CorrectedJet.dxy) < 999)]
+    events = events[ak.flatten(abs(events.CorrectedJet.dxyErr) < 999)]
+
+    #JetPFCands_pt = events.PFCands.pt[events.JetPFCands.pFCandsIdx]
+    #JetPFCands_phi = events.PFCands.phi[events.JetPFCands.pFCandsIdx]
+    #JetPFCands_eta = events.PFCands.eta[events.JetPFCands.pFCandsIdx]
+    #JetPFCands_charge = events.PFCands.charge[events.JetPFCands.pFCandsIdx]
+
+    #JetPFCands_ptDiff = np.subtract(JetPFCands_pt, events.JetPFCands["pt"])
+
+    #events["JetPFCands"] = ak.with_field(events.JetPFCands, JetPFCands_phi, "phi")
+    #events["JetPFCands"] = ak.with_field(events.JetPFCands, JetPFCands_ptDiff, "ptDiff")
+    #events["JetPFCands"] = ak.with_field(events.JetPFCands, JetPFCands_eta, "eta")
+    #events["JetPFCands"] = ak.with_field(events.JetPFCands, JetPFCands_charge, "charge")
+
+    #dR = events.CorrectedJet.metric_table(events.PFCands)
+    #dR = ak.flatten(dR, axis = 1)
+    #
+    #dR_mask = dR < 0.4
+
+    #events["PFCands"] = events.PFCands[dR_mask]
+
+    #nPFCands = ak.count_nonzero(events.PFCands.pt, axis = 1)
+    #events = ak.with_field(events, nPFCands, "nPFCands")
+
+    #nPFCands_ch = ak.count_nonzero(events.PFCands.pt[abs(events.PFCands.charge) > 0], axis = 1)
+    #nPFCands_ne = ak.count_nonzero(events.PFCands.pt[events.PFCands.charge == 0], axis = 1)
+
+    #events = ak.with_field(events, nPFCands_ch, "nChPFCands")
+    #events = ak.with_field(events, nPFCands_ne, "nNePFCands")
+
+    #events = events[ak.flatten(events.DisMuon.mT > 20)]
+    #events = events[events.CorrectedPFMET.pt > 150]
     #events = events[ak.flatten(events.DisMuon.pfRelIso03_all <  0.1)]
     #events = events[ak.flatten(events.CorrectedJet.btagPNetB >  0.6915)]
     #events = events[ak.ravel(abs(events.Tau.eta) > 1.2)]
@@ -198,13 +260,19 @@ for process in available_processes:
     ## disable for now
 #     print ('need to put back weights')
 
-    pt_raw = (1 - events.Jet.rawFactor) * events.Jet.pt
-    events["Jet"] = ak.with_field(events.Jet, pt_raw, "ptRaw")
+    #pt_raw = (1 - events.Jet.rawFactor) * events.Jet.pt
+    #events["Jet"] = ak.with_field(events.Jet, pt_raw, "ptRaw")
 
     #dphi = abs(events.DisMuon.phi - events.CorrectedPuppiMET.phi)
     #dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)
     #mT = np.sqrt(2 * events.DisMuon.pt * events.CorrectedPuppiMET.pt * (1 - np.cos(dphi)))
     #events["DisMuon"] = ak.with_field(events.DisMuon, mT, "mT")
+
+    dxySig = events.CorrectedJet.dxyErr/events.CorrectedJet.dxy
+    events["CorrectedJet"] = ak.with_field(events.CorrectedJet, dxySig, "dxySig")
+
+    dxySigInv = 1/events.CorrectedJet.dxySig
+    events["CorrectedJet"] = ak.with_field(events["CorrectedJet"], dxySigInv, "dxySigInv") 
 
     weights = events.run / events.run
     if "jetmet" in process.lower():
@@ -220,9 +288,21 @@ for process in available_processes:
         weights = events.weight * lumi_weight ## am i missing the sumGenW here?
     #events["weight"] = abs(weights)
     for plot_name, settings in plot_settings.items():
+        #if "Sig" not in plot_name and "Err" not in plot_name: continue
+        #if "Err" not in plot_name: continue
+        if "PFMET" not in plot_name: continue
         if "weight" in plot_name: continue
         if "correction" in plot_name: continue
         if "resolution" in plot_name: continue
+        #if "dphi" in plot_name: continue
+        #if "deta" in plot_name: continue
+        #if "dR" in plot_name: continue
+        #if "num" in plot_name: continue
+        #if "nJet" in plot_name: continue
+        if "cut" in plot_name: continue
+        #if "Sig" in plot_name: continue
+        #if "Err" in plot_name: continue
+        #if "pfRel" not in plot_name: continue
         #if "btag" not in plot_name: continue
         #if 'dxy' not in plot_name: continue
         ## test, not clear why
@@ -280,17 +360,23 @@ for plot_name, histograms in histogram_dict.items():
     # if args.groupProcesses:
     if groupProcesses:
         hist_Stau_500       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_Stau_400       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_Stau_300       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_Stau_200       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_Stau_100       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_Wto2Q     = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_WtoLNu    = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
-        hist_EWK       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_DY       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_TT        = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_singleT   = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_Top   = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_WJets   = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         hist_QCD       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_QCD_300to470       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_QCD_470to600       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_QCD_600to800       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_QCD_800to1000       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
+        hist_QCD_1000to1400       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True))
         #hist_Data_Muon      = np.zeros(len(binning)-1)
         #hist_Data_None      = np.zeros(len(binning)-1)
         #hist_Data_E      = np.zeros(len(binning)-1)
@@ -325,7 +411,7 @@ for plot_name, histograms in histogram_dict.items():
                 hist_singleT += histogram
                 hist_Top += histogram
             elif process in all_samples_dict['DY']:
-                hist_EWK += histogram
+                hist_DY += histogram
             #elif process in all_samples_dict['DYTau_0']:
             #    hist_DYTau_0 += histogram
             #elif process in all_samples_dict['DYTau_1']:
@@ -338,12 +424,24 @@ for plot_name, histograms in histogram_dict.items():
             elif process in all_samples_dict['Wto2Q']:
                 hist_Wto2Q += histogram
                 hist_WJets += histogram
-            elif process in all_samples_dict['QCD']:
-                hist_QCD += histogram
+            #elif process in all_samples_dict['QCD']:
+            #    hist_QCD += histogram
+            elif process in all_samples_dict['QCD_PT-300to470']:
+                hist_QCD_300to470 += histogram
+            elif process in all_samples_dict['QCD_PT-470to600']:
+                hist_QCD_470to600 += histogram
+            elif process in all_samples_dict['QCD_PT-600to800']:
+                hist_QCD_600to800 += histogram
+            elif process in all_samples_dict['QCD_PT-800to1000']:
+                hist_QCD_800to1000 += histogram
+            elif process in all_samples_dict['QCD_PT-1000to1400']:
+                hist_QCD_1000to1400 += histogram
             #elif process in all_samples_dict['Stau']:
             #    hist_Sig += histogram
             elif process in all_samples_dict['Stau_500']:
                 signal_hists['500'][process.split('_')[-1]] = histogram
+            elif process in all_samples_dict['Stau_400']:
+                signal_hists['400'][process.split('_')[-1]] = histogram
             elif process in all_samples_dict['Stau_300']:
                 signal_hists['300'][process.split('_')[-1]] = histogram
             elif process in all_samples_dict['Stau_200']:
@@ -360,12 +458,18 @@ for plot_name, histograms in histogram_dict.items():
                 hists_to_plot.append(histogram)
                 labels.append(process)
 
-    #sum_hist_Wto2Q   = np.sum(hist_Wto2Q, axis = 0) 
-    #sum_hist_WtoLNu  = np.sum(hist_WtoLNu, axis = 0)
-    #sum_hist_EWK     = np.sum(hist_EWK, axis = 0)
-    #sum_hist_TT      = np.sum(hist_TT, axis = 0)
-    #sum_hist_singleT = np.sum(hist_singleT, axis = 0)
-    #sum_hist_QCD     = np.sum(hist_QCD, axis = 0)
+    sum_hist_Wto2Q   = np.sum(hist_Wto2Q.values(flow=True)) 
+    sum_hist_WtoLNu  = np.sum(hist_WtoLNu.values(flow=True))
+    sum_hist_DY     = np.sum(hist_DY.values(flow=True))
+    sum_hist_TT      = np.sum(hist_TT.values(flow=True))
+    sum_hist_singleT = np.sum(hist_singleT.values(flow=True))
+    sum_hist_QCD     = np.sum(hist_QCD.values(flow=True))
+    sum_hist_bg    = np.sum([sum_hist_Wto2Q, sum_hist_WtoLNu, sum_hist_DY, sum_hist_TT, sum_hist_singleT, sum_hist_QCD])
+    sum_hist_QCD_300to470   = np.sum(hist_QCD_300to470.values(flow=True))  
+    sum_hist_QCD_470to600   = np.sum(hist_QCD_470to600.values(flow=True))
+    sum_hist_QCD_600to800   = np.sum(hist_QCD_600to800.values(flow=True))  
+    sum_hist_QCD_800to1000  = np.sum(hist_QCD_800to1000.values(flow=True)) 
+    sum_hist_QCD_1000to1400 = np.sum(hist_QCD_1000to1400.values(flow=True))
 
     # print (hist_EWK)
     if groupProcesses:
@@ -381,90 +485,121 @@ for plot_name, histograms in histogram_dict.items():
             labels.append('TT')
             hists_to_plot.append(hist_EWK/sum_hist_EWK)
             labels.append('DYJetsToLL')
-            hists_to_plot.append(hist_QCD/sum_hist_QCD)
-            labels.append('QCD')
+            #hists_to_plot.append(hist_QCD/sum_hist_QCD)
+            #labels.append('QCD')
         else:
-            hists_to_plot.append(hist_Wto2Q)
-            labels.append('Wto2Q')
-            hists_to_plot.append(hist_WtoLNu)
-            labels.append('WtoLNu')
-            hists_to_plot.append(hist_singleT)
-            labels.append('singleT')
-            hists_to_plot.append(hist_TT)
-            labels.append('TT')
-            #hists_to_plot.append(hist_Top)
-            #labels.append('singleT + TT')
-            hists_to_plot.append(hist_EWK)
-            labels.append('DYJetsToLL')
-            hists_to_plot.append(hist_QCD)
-            labels.append('QCD')
+            #hists_to_plot.append(hist_Wto2Q)
+            #labels.append(f'Wto2Q: %.2f'%sum_hist_Wto2Q)
+            #hists_to_plot.append(hist_WtoLNu)
+            #labels.append(f'WtoLNu: %.2f' %sum_hist_WtoLNu)
+            #hists_to_plot.append(hist_singleT)
+            #labels.append(f'singleT: %.2f' %sum_hist_singleT)
+            #hists_to_plot.append(hist_TT)
+            #labels.append(f'TT: %.2f' %sum_hist_TT)
+            #hists_to_plot.append(hist_DY)
+            #labels.append(f'DY: %.2f' %sum_hist_DY)
+            #hists_to_plot.append(hist_QCD)
+            #labels.append(f'QCD: %.2f' %sum_hist_QCD)
+            hists_to_plot.append(hist_QCD_300to470)
+            labels.append(f'300to470: %.2f' %sum_hist_QCD_300to470)
+            hists_to_plot.append(hist_QCD_470to600)
+            labels.append(f'470to600: %.2f' %sum_hist_QCD_470to600)
+            hists_to_plot.append(hist_QCD_600to800)
+            labels.append(f'600to800: %.2f' %sum_hist_QCD_600to800)
+            hists_to_plot.append(hist_QCD_800to1000)
+            labels.append(f'800to1000: %.2f' %sum_hist_QCD_800to1000)
+            hists_to_plot.append(hist_QCD_1000to1400)
+            labels.append(f'1000to1400: %.2f' %sum_hist_QCD_1000to1400)
             
-
+            
+    fig, ax_main = plt.subplots(1, 1, sharex=True)
+    fig.subplots_adjust(hspace=1.0)
     colours = [ "#6DD3CE", "#127475", "#FF99C9", "#FECDAA", "#06D6A0", "#B30089"]
-    for mass in signal_mass:
-        colour = 0
-        fig, ax_main = plt.subplots(1, 1, sharex=True)
-        hep.histplot(hists_to_plot,  histtype='fill', 
-                 stack=do_stack,
-                 flow = 'sum',
-                 label=labels, #color=colours, #sort='label_r', 
-                 density=plot_settings[plot_name].get("density"), ax=ax_main)
-        for lifetime in signal_lifetime:
-            if normalize == True:
-                hep.histplot(signal_hists[mass][lifetime]/np.sum(signal_hists[mass][lifetime], axis = 0),  histtype='step', flow = 'sum', label=f'Stau_{mass}_{lifetime}', color=colours[colour], ax=ax_main)
-            else:
-                hep.histplot(signal_hists[mass][lifetime],  histtype='step', flow = 'sum', label=f'Stau_{mass}_{lifetime}', color=colours[colour], ax=ax_main)
-            colour += 1
-        ax_main.set_ylabel(plot_settings[plot_name].get("ylabel"))
-        ax_main.set_xlabel(plot_settings[plot_name].get("xlabel"), usetex=False)
-        ax_main.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop = {"size":16})
-        
-        # this part is still to be done 
-        #if groupProcesses:
-        ## # # if args.groupProcesses:
-        #    sum_histogram = np.sum(np.asarray(hists_to_plot), axis=0)
-        #    sum_data_histogram = np.sum(np.asarray(data_hists), axis=0)
-        #    ratio_hist = sum_data_histogram / (sum_histogram + np.finfo(float).eps)
-        ## #     # Adding relative sqrtN Poisson uncertainty for now, should be improved when using the hist package
-        #    rel_unc = np.sqrt(sum_data_histogram) / sum_data_histogram
-        #    rel_unc *= ratio_hist
-        #    rel_unc[rel_unc < 0] = 0 # Not exactly sure why we have negative values, but this solves it for the moment
-        #    hep.histplot(ratio_hist, bins=binning, histtype='errorbar', yerr=rel_unc, color='black', label='Ratio', ax=ax_ratio)
-        #    ax_ratio.axhline(1, color='gray', linestyle='--')
-        #ax_ratio.set_xlabel(plot_settings[plot_name].get("xlabel"), usetex=False)
-        #ax_main.xaxis.set_major_locator(MultipleLocator(plot_settings[plot_name].get("x_major_ticks")))
-        #ax_main.xaxis.set_minor_locator(MultipleLocator(plot_settings[plot_name].get("x_minor_ticks")))
-        #ax_ratio.xaxis.set_major_locator(MultipleLocator(plot_settings[plot_name].get("x_major_ticks")))
-        #ax_ratio.xaxis.set_minor_locator(MultipleLocator(plot_settings[plot_name].get("x_minor_ticks")))
-        #ax_ratio.set_ylabel('Data / MC')
-        #ax_ratio.set_xlim(binning[0], binning[-1])
-        #ax_ratio.set_ylim(0.6, 1.4)
-        
-        # Decorating with CMS label
-        hep.cms.label(data=True, loc=0, label="Private Work", com=13.6, lumi=round(target_lumi, 1), ax=ax_main)
-        #hep.cms.add_text(r'$|\eta|$ > 1.2', loc = 'upper left')
-        
-        # Saving with special name
-        #filename = f"/eos/uscms/store/user/dally/DisplacedTauAnalysis/plots/{dataset_name}_{plot_name}"
-        plt.subplots_adjust(right=0.8)
-        filedir = "W_CR_signal"
-        if filedir not in os.listdir('plots/'):
-            os.mkdir(f'plots/{filedir}')
-        filename = f"./plots/{filedir}/{dataset_name}_{plot_name}_{mass}"
-        # #if args.groupProcesses:
-        if plot_settings[plot_name].get("density"):
-            filename += "_normalized"
-        else: 
-            filename += "_stacked"
-        #filename += "_etaleq1p2.pdf"
-        #filename += "_etag1p2.pdf"
-        filename += ".pdf"
-        print(filename)
-        plt.savefig(filename)
-        plt.savefig(filename.replace('.pdf', '.png'))
-        plt.savefig(filename.replace('.pdf', '.eps'))
-        ax_main.set_yscale('log')
-        plt.savefig(filename.replace('.pdf', '_log.pdf'))
-        plt.savefig(filename.replace('.pdf', '_log.png'))
-        plt.savefig(filename.replace('.pdf', '_log.eps'))
-        #plt.clf()
+    hep.histplot(hists_to_plot,  histtype='fill', 
+             stack=do_stack,
+             label=labels, #color=colours, #sort='label_r', 
+             density=plot_settings[plot_name].get("density"), ax=ax_main)
+    ax_main.set_ylabel(plot_settings[plot_name].get("ylabel"))
+    ax_main.set_xlabel(plot_settings[plot_name].get("xlabel"), usetex=False)
+    ax_main.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop = {"size":16})
+    ax_main.xaxis.set_major_locator(MultipleLocator(plot_settings[plot_name].get("x_major_ticks")))
+    ax_main.xaxis.set_minor_locator(MultipleLocator(plot_settings[plot_name].get("x_minor_ticks")))
+    
+    ## Decorating with CMS label
+    hep.cms.label(r'  $m_{\tilde{\tau}}$' + f"= {mass} GeV QCD only Private Work", data=True, loc=0, com=13.6, lumi=round(target_lumi, 1), ax=ax_main, fontsize = 14)
+    #hep.cms.add_text(r'$|\eta|$ > 1.2', loc = 'upper left')
+    
+    # Saving with special name
+    #filename = f"/eos/uscms/store/user/dally/DisplacedTauAnalysis/plots/{dataset_name}_{plot_name}"
+    plt.subplots_adjust(right=0.7)
+    filedir = "PR_score_QCDonly"
+    if filedir not in os.listdir('plots/'):
+        os.mkdir(f'plots/{filedir}')
+    filename = f"./plots/{filedir}/{dataset_name}_{plot_name}"
+    # #if args.groupProcesses:
+    #if plot_settings[plot_name].get("density"):
+    #    filename += "_normalized"
+    #else: 
+    #    filename += "_stacked"
+    #filename += "_etaleq1p2.pdf"
+    #filename += "_etag1p2.pdf"
+    filename += ".pdf"
+    print(filename)
+    plt.savefig(filename)
+    plt.savefig(filename.replace('.pdf', '.png'))
+    plt.savefig(filename.replace('.pdf', '.eps'))
+    ax_main.set_yscale('log')
+    plt.savefig(filename.replace('.pdf', '_log.pdf'))
+    plt.savefig(filename.replace('.pdf', '_log.png'))
+    plt.savefig(filename.replace('.pdf', '_log.eps'))
+    plt.clf()
+    #for mass in signal_mass:
+    #    colour = 0
+    #    fig, ax_main = plt.subplots(1, 1, sharex=True)
+    #    fig.subplots_adjust(hspace=1.0)
+    #    hep.histplot(hists_to_plot,  histtype='fill', 
+    #             stack=do_stack,
+    #             flow = 'sum',
+    #             label=labels, #color=colours, #sort='label_r', 
+    #             density=plot_settings[plot_name].get("density"), ax=ax_main)
+    #    for lifetime in signal_lifetime:
+    #        if normalize == True:
+    #            hep.histplot(signal_hists[mass][lifetime]/np.sum(signal_hists[mass][lifetime], axis = 0),  histtype='step', flow = 'sum', label=f'Stau_{mass}_{lifetime}', color=colours[colour], ax=ax_main)
+    #        else:
+    #            hep.histplot(signal_hists[mass][lifetime],  histtype='step', label=f'{lifetime}: %.2f'%np.sum(signal_hists[mass][lifetime].values(flow=True)), flow = 'sum', color=colours[colour], ax=ax_main)
+    #        colour += 1
+    #    ax_main.set_ylabel(plot_settings[plot_name].get("ylabel"))
+    #    ax_main.set_xlabel(plot_settings[plot_name].get("xlabel"), usetex=False)
+    #    ax_main.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop = {"size":16})
+    #    
+    #    ax_main.xaxis.set_major_locator(MultipleLocator(plot_settings[plot_name].get("x_major_ticks")))
+    #    ax_main.xaxis.set_minor_locator(MultipleLocator(plot_settings[plot_name].get("x_minor_ticks")))
+    #    
+    #    ## Decorating with CMS label
+    #    hep.cms.label(r'  $m_{\tilde{\tau}}$' + f"= {mass} GeV Private Work", data=True, loc=0, com=13.6, lumi=round(target_lumi, 1), ax=ax_main, fontsize = "x-small")
+    #    #hep.cms.add_text(r'$|\eta|$ > 1.2', loc = 'upper left')
+    #    
+    #    # Saving with special name
+    #    #filename = f"/eos/uscms/store/user/dally/DisplacedTauAnalysis/plots/{dataset_name}_{plot_name}"
+    #    plt.subplots_adjust(right=0.75)
+    #    filedir = "PR_score_QCDonly"
+    #    if filedir not in os.listdir('plots/'):
+    #        os.mkdir(f'plots/{filedir}')
+    #    filename = f"./plots/{filedir}/{dataset_name}_{plot_name}_{mass}"
+    #    # #if args.groupProcesses:
+    #    #if plot_settings[plot_name].get("density"):
+    #    #    filename += "_normalized"
+    #    #else: 
+    #    #    filename += "_stacked"
+    #    #filename += "_etaleq1p2.pdf"
+    #    #filename += "_etag1p2.pdf"
+    #    filename += ".pdf"
+    #    print(filename)
+    #    plt.savefig(filename)
+    #    plt.savefig(filename.replace('.pdf', '.png'))
+    #    plt.savefig(filename.replace('.pdf', '.eps'))
+    #    ax_main.set_yscale('log')
+    #    plt.savefig(filename.replace('.pdf', '_log.pdf'))
+    #    plt.savefig(filename.replace('.pdf', '_log.png'))
+    #    plt.savefig(filename.replace('.pdf', '_log.eps'))
+    #    plt.clf()

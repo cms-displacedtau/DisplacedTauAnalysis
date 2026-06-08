@@ -5,8 +5,8 @@ from argparse import ArgumentParser
 parser = ArgumentParser(description="")
 parser.add_argument(
 	"--nanov",
-	choices=['Summer22_CHS_v10', 'Summer22_CHS_v7'],
-	default='Summer22_CHS_v10',
+	choices=['Summer22_CHS_v10', 'Summer22_CHS_v7', 'Summer22_CHS_v19'],
+	default='Summer22_CHS_v19',
 	required=False,
 	help='Specify the custom nanoaod version to process')
 parser.add_argument(
@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 processed_json_folder = f'/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/skim/{args.nanov}/{args.skim}/{args.skimversion}/'
 print(f"Processed fileset: {processed_json_folder}")
-outdir = Path(f'plots_config/{args.nanov}/{args.skimversion}')
+outdir = Path(f'plots_config/{args.nanov}/{args.skim}/{args.skimversion}')
 if not outdir.exists():
     outdir.mkdir(parents=True, exist_ok=True)
     print(f"Folder '{outdir}' created.")

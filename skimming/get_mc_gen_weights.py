@@ -8,7 +8,7 @@ from pathlib import Path
 parser = argparse.ArgumentParser(description="")
 parser.add_argument(
     "--sample",
-    choices=['QCD','DY', 'DYto2Tau-2Jets', 'signal', 'WtoLNu', 'Wto2Q', 'TT', 'singleT'],
+    choices=['QCD','DYEMu', 'DYTau', 'signal', 'WtoLNu', 'Wto2Q', 'TT', 'singleT', 'EWK', 'VBF'],
     required=True,
     help="Specify the sample you want to process")
 parser.add_argument(
@@ -25,8 +25,8 @@ parser.add_argument(
     help="Specify the number of input files to process")
 parser.add_argument(
 	"--nanov",
-	choices=['Summer22_CHS_v10', 'Summer22_CHS_v7'],
-	default='Summer22_CHS_v10',
+	choices=['Summer22_CHS_v10', 'Summer22_CHS_v7', 'Summer22_CHS_v19'],
+	default='Summer22_CHS_v19',
 	required=False,
 	help='Specify the custom nanoaod version to process')
 args = parser.parse_args()
@@ -37,11 +37,13 @@ samples = {
     "Wto2Q": f"samples.{custom_nano_v_p}fileset_Wto2Q",
     "WtoLNu": f"samples.{custom_nano_v_p}fileset_WtoLNu",
     "QCD": f"samples.{custom_nano_v_p}fileset_QCD",
-    "DY": f"samples.{custom_nano_v_p}fileset_DY",
-    "DYto2Tau-2Jets": f"samples.{custom_nano_v_p}fileset_DYto2Tau-2Jets",
+    "DYEMu": f"samples.{custom_nano_v_p}fileset_DYEMu",
+    "DYTau": f"samples.{custom_nano_v_p}fileset_DYTau",
     "signal": f"samples.{custom_nano_v_p}fileset_signal",
     "TT": f"samples.{custom_nano_v_p}fileset_TT",
     "singleT": f"samples.{custom_nano_v_p}fileset_singleT",
+    "EWK": f"samples.{custom_nano_v_p}fileset_EWK",
+    "VBF": f"samples.{custom_nano_v_p}fileset_VBF",
 }
 
 the_sample = args.sample

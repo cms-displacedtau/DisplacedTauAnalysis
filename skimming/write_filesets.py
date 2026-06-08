@@ -8,7 +8,7 @@ parser.add_argument(
 	"--skim",
 	default='',
 	required=False,
-	choices=['', 'prompt_mutau','mutau'],
+	choices=['', 'prompt_mutau','mutau', 'pmutau'],
 	help='If providing list of the skimmed files, select which of the possible skims')
 parser.add_argument(
 	"--skimversion",
@@ -18,20 +18,11 @@ parser.add_argument(
 args = parser.parse_args()
 
 # directory on EOS with input files
-## to replace with v8 once available
 BASE_DIRS = [
-  "/store/group/lpcdisptau/displacedTaus/nanoprod/summary/Run3_Summer22_chs_AK4PFCands_v10/",
-  "/store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v10_resubmit_v2",
-  "/store/group/lpcdisptau/displacedTaus/nanoprod/summary/Run3_Summer22_chs_AK4PFCands_v10_resubmit_v2",
-  "/store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v10/",
-#   "/store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v7/",
-#   "/store/user/fiorendi/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v7/", 
-#   "/store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v7_v2/",
-  "/store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v10_data/",
-  "/store/group/lpcdisptau/displacedTaus/nanoprod/summary/Run3_Summer22_chs_AK4PFCands_v10_data/"
-#    "/store/mc/Run3Summer22EENanoAODv12/"
+"/store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v19/",
+"/store/group/lpcdisptau/displacedTaus/nanoprod/summary/Run3_Summer22_chs_AK4PFCands_v19/"
 ]
-custom_nano_v = 'Summer22_CHS_v10'
+custom_nano_v = 'Summer22_CHS_v19'
 
 XROOTD_PREFIX = "root://cms-xrd-global.cern.ch/"
 #XROOTD_PREFIX = "root://cmseos.fnal.gov/"
@@ -43,7 +34,7 @@ if args.skim != '':
     skim_folder = args.skim
     skim_version = args.skimversion
     BASE_DIRS = [
-      f"/store/group/lpcdisptau/dally/displacedTaus/skim/{custom_nano_v}/{skim_folder}/{skim_version}"
+      f"/store/user/lpcdisptau/dally/displacedTaus/skim/{custom_nano_v}/{skim_folder}/{skim_version}"
     ]
     
     XROOTD_PREFIX = "root://cmseos.fnal.gov/"
@@ -64,14 +55,18 @@ GROUPS = {
     "Stau"         : f"{outdir}fileset_signal.py",
     "Wto2Q"        : f"{outdir}fileset_Wto2Q.py",
     "WtoLNu"       : f"{outdir}fileset_WtoLNu.py",
+    "W"            : f"{outdir}fileset_W.py",
     "QCD_PT"       : f"{outdir}fileset_QCD.py",
+    "DYEMu"        : f"{outdir}fileset_DYEMu.py",
+    "DYTau"        : f"{outdir}fileset_DYTau.py",
     "DY"           : f"{outdir}fileset_DY.py",
-    "DYto2L-2Jets"   : f"{outdir}fileset_DYto2L-2Jets.py",
-    "DYto2Tau-2Jets_0J"   : f"{outdir}fileset_DYto2Tau-2Jets_0J.py",
     "TTto"         : f"{outdir}fileset_TT.py",
-    "T"            : f"{outdir}fileset_singleT.py",  ## more on this later
+    "Top"          : f"{outdir}fileset_Top.py",
+    "singleT"      : f"{outdir}fileset_singleT.py",  ## more on this later
     "JetMET"       : f"{outdir}fileset_JetMET_2022.py",  ## more on this later
-    "Muon"       : f"{outdir}fileset_Muon_2022.py",  ## more on this later
+    "Muon"         : f"{outdir}fileset_Muon_2022.py",  ## more on this later
+    "EWK"          : f"{outdir}fileset_EWK.py",
+    "VBF"          : f"{outdir}fileset_VBF.py"
 }
 
 
@@ -131,18 +126,27 @@ def write_filesets(grouped):
             dirname = os.path.basename(d)
             for key, outfile in GROUPS.items():
                 match = False
-                if key == "T":  ## special case for single tops, as don't want to include TT into them
+                if key == "Top":  ## special case for single tops, as don't want to include TT into them
+                    if dirname.startswith("T"):
+                        match = True
+                if key == "DY":  ## special case for single tops, as don't want to include TT into them
+                    if dirname.startswith("DY"):
+                        match = True
+                if key == "W":  ## special case for single tops, as don't want to include TT into them
+                    if dirname.startswith("W"):
+                        match = True
+                if key == "singleT":  ## special case for single tops, as don't want to include TT into them
                     if dirname.startswith(("TB", "Tb", "TW")):
                         match = True
-                if key == "DYto2Tau-2Jets_0J":
-                    if dirname.startswith("DYto2Tau-2Jets_MLL-50_0J"):
+                if key == "DYEMu":
+                    if dirname.startswith("DYJets"):
                         match = True
-                if key == "DYJetsToLL":
-                    if dirname.startswith("DYto2L-2Jets"):
-                        match = True
-                if key == "DY":
-                    if dirname.startswith("DY"):
+                if key == "DYTau":
+                    if dirname.startswith("DYto"):
                         if dirname.startswith("DYto2L-2Jets"): continue
+                        match = True
+                if key == "EWK":
+                    if dirname.startswith("WW") or dirname.startswith("WZ") or dirname.startswith("ZZ"):
                         match = True
                 elif dirname.startswith(key):
                     match = True

@@ -12,6 +12,7 @@ import os
 import subprocess
 from math import floor
 from concurrent.futures import ThreadPoolExecutor
+import socket, time
 from ROOT import TFile
 import pdb
 
@@ -28,8 +29,13 @@ treeName = "Events"
 # sourceDir = "/eos/cms/store/user/fiorendi/displacedTaus/skim/Summer22_CHS_v7/mutau/daniel/selected/"
 #sourceDir = "/eos/uscms/store/user/dally/skim/Summer22_CHS_v10/prompt_mutau/v8_nobJetVeto/selected/"
 #sourceDir = "/eos/uscms/store/user/dally/skim/Summer22_CHS_v10/mutau/v3/material_veto/"
-sourceDir = "/eos/uscms/store/user/dally/skim/Summer22_CHS_v10/mutau/v3/selected/W_CR"
-#sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/skim/Summer22_CHS_v10/mutau/v3/"
+#sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v4/TTMinusB_CR_PFMETNoMu110_PFMHTNoMu110_IDTight_FilterHF/"
+#sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v4/TTMinusB_CR_MET105_IsoTrk50_noScore/"
+#sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v4/PR_MET105_IsoTrk50/"
+#sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/skim/Summer22_CHS_v10/prompt_mutau/v10/"
+#sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v5/PR_Mu/"
+#sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/pmutau/v7/PR_Mu50_LeadingPtJet_PackedSelection_PromptMuon/"
+sourceDir = "/eos/uscms/store/user/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v19/mutau/v8/SR_score"
 sampleDir = sourceDir
 
 selection = "QCD_CR"
@@ -55,7 +61,9 @@ def hadd_files(output, files):
 
 
 if doMerge:
+    tic_total = time.time()
     for folder in os.listdir(sampleDir):
+        tic = time.time()        
         if "result" in folder:
             continue
         if "processed" in folder:
@@ -71,7 +79,7 @@ if doMerge:
         rootFiles = [f for f in allFiles if f.endswith(".root")]
 
         mergeName = mergeDir + "_" + folder
-        fullMergeDir = os.path.join(sourceDir, mergeDir, mergeName)
+        fullMergeDir = os.path.join(sampleDir, mergeDir, mergeName)
         os.makedirs(fullMergeDir, exist_ok=True)
 
         finalName = f"{mergeName}.root"
@@ -138,5 +146,8 @@ if doMerge:
                 if fname.endswith(".root"):
                     f.write(fname + "\n")
 
+        elapsed = time.time() - tic 
         print(f"  Finished merging {folder} -> {finalPath}")
-
+        print(f"  Time taken to merge {folder} is {elapsed:.1f}s")
+total_elapsed = time.time() - tic_total
+print(f"  Time taken to merge everything is {total_elapsed:.1f}s")

@@ -10,16 +10,19 @@ SR = {
               "muon_dxy_max":               10.,  ##cm
               "muon_iso_min":               -999,
               "muon_iso_max":               0.18,
+              "muon_iso04_min":               -999,
+              "muon_iso04_max":               999,
               "muon_mt_min":                -999,
               "muon_mt_max":                999,
 
               "jet_pt_min":                 32.,  ##GeV
               "jet_score_min":              0.9, 
               "jet_score_max":              999, 
-              "jet_dxy_min":                0.02, ##cm   ## maybe, not clear if currently it's set or not
+              "jet_dxy_min":                0.1, ##cm   ## maybe, not clear if currently it's set or not
               "jet_dxy_max":                999, ##cm
               "jet_ID":                     True,
-              "jet_btag":                   0,
+              "jet_btag_min":                   0,
+              "jet_btag_max":                   999,
 
               "MET_pt":                     105., ##GeV
              }
@@ -54,13 +57,28 @@ TT_CR["jet_score_min"] =  0
 TT_CR["jet_score_max"] =  0.2
 TT_CR["jet_dxy_min"] = 0
 TT_CR["jet_dxy_max"] = 0.02
-TT_CR["jet_btag"]    = 0.6915
+TT_CR["jet_btag_min"]    = 0.6915
 TT_CR["muon_dxy_min"] = 0
 TT_CR["muon_dxy_max"] = 50E-4
 TT_CR["muon_iso_max"] = 0.1
 TT_CR["muon_mt_min"] = 30
 TT_CR["muon_mt_max"] = 999
 TT_CR["MET_pt"] = 60
+
+# TT without b-tagging
+TTMinusB_CR = {j:k for j,k in SR.items()}
+TTMinusB_CR["jet_score_min"] =  0
+TTMinusB_CR["jet_score_max"] =  999
+TTMinusB_CR["jet_dxy_min"] = 0
+TTMinusB_CR["jet_dxy_max"] = 0.1
+TTMinusB_CR["muon_dxy_min"] = 0
+TTMinusB_CR["muon_dxy_max"] = 0.045
+TTMinusB_CR["muon_iso_max"] = 999
+###tight Id from muon pog https://muon-wiki.docs.cern.ch/guidelines/recommendations/?h=isolation#particle-flow-isolation
+TTMinusB_CR["muon_iso04_max"] = 0.15 
+TTMinusB_CR["muon_mt_min"] = 30
+TTMinusB_CR["muon_mt_max"] = 999
+TTMinusB_CR["MET_pt"] = 0
 
 QCD_CR = {j:k for j,k in SR.items()}
 QCD_CR["muon_dxy_min"] = 0
@@ -78,18 +96,46 @@ QCD_CR["MET_pt"] = 0
 W_CR = {j:k for j,k in SR.items()}
 W_CR["jet_score_min"] =  0
 W_CR["jet_score_max"] =  0.2
-W_CR["muon_mt_min"] = 30
-W_CR["muon_mt_max"] = 999
-W_CR["MET_pt"] = 0
 W_CR["jet_dxy_min"] = 0
 W_CR["jet_dxy_max"] = 0.02
+W_CR["jet_btag_max"] = 0.0499
 W_CR["muon_dxy_min"] = 0
 W_CR["muon_dxy_max"] = 20E-4  
 W_CR["muon_iso_max"] = 0.1
+W_CR["muon_mt_min"] = 30
+W_CR["muon_mt_max"] = 999
+W_CR["MET_pt"] = 0
 
 
 ### Plotting region for preselection cuts plus medium ID muon
 PR = {
+              "muon_pt_min":                30., ##GeV
+              "muon_medium_ID_min":         0, ## > min and < max -> [0,2] to select mediumID, [-1,1] to select not-medium, [-999,999] to select any 
+              "muon_medium_ID_max":         2, ## 1 is passing, 0 if not 
+              "muon_tight_ID_min":         -999, ## > min and < max -> [0,2] to select tightID, [-1,1] to select not-tight, [-999,999] to select any 
+              "muon_tight_ID_max":          999,  ## 
+              "muon_dxy_min":               0, ##cm
+              "muon_dxy_max":               999.,  ##cm
+              "muon_iso_min":               -999,
+              "muon_iso_max":               999,
+              "muon_iso04_min":               -999,
+              "muon_iso04_max":               999,
+              "muon_mt_min":                -999,
+              "muon_mt_max":                999,
+
+              "jet_pt_min":                 32.,  ##GeV
+              "jet_score_min":              0, 
+              "jet_score_max":              999, 
+              "jet_dxy_min":                0, ##cm   ## maybe, not clear if currently it's set or not
+              "jet_dxy_max":                999, ##cm
+              "jet_ID":                     True,
+              "jet_btag_min":                   0,
+              "jet_btag_max":                   999,
+
+              "MET_pt":                     0, ##GeV
+             }
+
+PR_Mu = {
               "muon_pt_min":                30., ##GeV
               "muon_medium_ID_min":         0, ## > min and < max -> [0,2] to select mediumID, [-1,1] to select not-medium, [-999,999] to select any 
               "muon_medium_ID_max":         2, ## 1 is passing, 0 if not 
@@ -108,8 +154,10 @@ PR = {
               "jet_dxy_min":                0, ##cm   ## maybe, not clear if currently it's set or not
               "jet_dxy_max":                999, ##cm
               "jet_ID":                     True,
+              "jet_btag_min":                   0,
+              "jet_btag_max":                   999,
 
-              "MET_pt":                     0., ##GeV
+              "MET_pt":                     0, ##GeV
              }
 
 
@@ -145,9 +193,11 @@ selections_dict = {
   'validation_prompt' : validation_prompt,
   'validation_daniel' : validation_daniel,
   'TT_CR' : TT_CR,
+  'TTMinusB_CR': TTMinusB_CR,
   'QCD_CR' : QCD_CR,
   'W_CR' : W_CR,
   'PR' : PR,
+  'PR_Mu' : PR_Mu,
   'HPSTauMu' : HPSTauMu,
 }
 
@@ -162,6 +212,8 @@ def event_selection(events, selection):
                      (abs(events.DisMuon.dxy) < selections["muon_dxy_max"]) &\
                      (events.DisMuon.pfRelIso03_all > selections["muon_iso_min"]) &\
                      (events.DisMuon.pfRelIso03_all < selections["muon_iso_max"]) &\
+                     (events.DisMuon.pfRelIso04_all > selections["muon_iso04_min"]) &\
+                     (events.DisMuon.pfRelIso04_all < selections["muon_iso04_max"]) &\
                      (events.DisMuon.mediumId > selections["muon_medium_ID_min"]) &\
                      (events.DisMuon.mediumId < selections["muon_medium_ID_max"]) &\
                      (events.DisMuon.tightId > selections["muon_tight_ID_min"]) &\
@@ -177,7 +229,47 @@ def event_selection(events, selection):
                     (abs(events.CorrectedJet.dxy) > selections["jet_dxy_min"]) &\
                     (abs(events.CorrectedJet.dxy) < selections["jet_dxy_max"]) &\
                     (events.CorrectedJet.jetId == selections["jet_ID"]) &\
-                    (events.CorrectedJet.btagPNetB > selections["jet_btag"])
+                    (events.CorrectedJet.btagPNetB > selections["jet_btag_min"])&\
+                    (events.CorrectedJet.btagPNetB < selections["jet_btag_max"])
+                  )
+    
+    good_MET = (events.CorrectedPFMET.pt > selections["MET_pt"])
+
+
+    events = events[good_muons & good_jets & good_MET]
+
+    return events
+
+def prompt_muon_event_selection(events, selection):
+
+    selections = selections_dict[selection]
+    #print(selection)
+    #print ('in function selections: \n', selections)
+    good_muons  =  ak.flatten(
+                     (events.Muon.pt > selections["muon_pt_min"])  &\
+                     (abs(events.Muon.dxy) > selections["muon_dxy_min"]) &\
+                     (abs(events.Muon.dxy) < selections["muon_dxy_max"]) &\
+                     (events.Muon.pfRelIso03_all > selections["muon_iso_min"]) &\
+                     (events.Muon.pfRelIso03_all < selections["muon_iso_max"]) &\
+                     (events.Muon.pfRelIso04_all > selections["muon_iso04_min"]) &\
+                     (events.Muon.pfRelIso04_all < selections["muon_iso04_max"]) &\
+                     (events.Muon.mediumId > selections["muon_medium_ID_min"]) &\
+                     (events.Muon.mediumId < selections["muon_medium_ID_max"]) &\
+                     (events.Muon.tightId > selections["muon_tight_ID_min"]) &\
+                     (events.Muon.tightId < selections["muon_tight_ID_max"]) &\
+                     (events.Muon.mT > selections["muon_mt_min"]) &\
+                     (events.Muon.mT < selections["muon_mt_max"])
+                   ) 
+    
+    good_jets   = ak.flatten(
+                    (events.CorrectedJet.pt > selections["jet_pt_min"]) &\
+                    (events.CorrectedJet.disTauTag_score1 > selections["jet_score_min"]) &\
+                    (events.CorrectedJet.disTauTag_score1 < selections["jet_score_max"]) &\
+                    (abs(events.CorrectedJet.dxy) > selections["jet_dxy_min"]) &\
+                    (abs(events.CorrectedJet.dxy) < selections["jet_dxy_max"]) &\
+                    (events.CorrectedJet.jetId == selections["jet_ID"]) &\
+                    (events.CorrectedJet.btagPNetB > selections["jet_btag_min"])&\
+                    (events.CorrectedJet.btagPNetB < selections["jet_btag_max"])
                   )
     
     good_MET = (events.CorrectedPFMET.pt > selections["MET_pt"])
@@ -189,7 +281,7 @@ def event_selection(events, selection):
 
 def manual_blinding(events):
 
-    selections = selections_dict['SR_selections']
+    selections = selections_dict['SR']
     #print(selection)
     #print ('in function selections: \n', selections)
     good_muons  =  ak.flatten(
@@ -206,10 +298,10 @@ def manual_blinding(events):
                     (abs(events.CorrectedJet.dxy) < selections["jet_dxy_max"]) 
                   )
     
-    good_MET = (events.CorrectedPFMET.pt > selections["MET_pt"])
+    #good_MET = (events.CorrectedPFMET.pt > selections["MET_pt"])
 
 
-    events = events[~(good_muons & good_jets & good_MET)]
+    events = events[~(good_muons & good_jets)]
 
     return events
 

@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore", module="coffea") # Suppress annoying deprecati
 parser = argparse.ArgumentParser(description="")
 parser.add_argument(
 	"--sample",
-	choices=['QCD','DYEMu', 'DYTau', 'signal', 'Wto2Q', 'WtoLNu', 'TT', 'singleT', 'JetMET_2022', 'Muon', 'DYto2L-2Jets', 'DYto2Tau-2Jets_0J', 'DYto2Tau-2Jets_0J_custom'],
+	choices=['QCD','DYEMu', 'DYTau', 'signal', 'Wto2Q', 'WtoLNu', 'TT', 'singleT', 'JetMET_2022', 'Muon', 'VBF', 'EWK', 'DY', 'Top', 'W'],
 	required=True,
 	help='Specify the sample you want to process')
 parser.add_argument(
@@ -50,8 +50,8 @@ parser.add_argument(
 	help='Specify, if working on the skimmed samples, the skim name (name of the folder inside samples)')
 parser.add_argument(
 	"--nanov",
-	choices=['Summer22_CHS_v10', 'Summer22_CHS_v7'],
-	default='Summer22_CHS_v10',
+	choices=['Summer22_CHS_v10', 'Summer22_CHS_v7', 'Summer22_CHS_v19'],
+	default='Summer22_CHS_v19',
 	required=False,
 	help='Specify the custom nanoaod version to process')
 args = parser.parse_args()
@@ -71,6 +71,9 @@ samples = {
     "Wto2Q"  : f"samples.{outdir_p}fileset_Wto2Q",
     "WtoLNu" : f"samples.{outdir_p}fileset_WtoLNu",
     "QCD"    : f"samples.{outdir_p}fileset_QCD",
+    "Top"    : f"samples.{outdir_p}fileset_Top",
+    "DY"    : f"samples.{outdir_p}fileset_DY",
+    "W"    : f"samples.{outdir_p}fileset_W",
     "DYEMu"     : f"samples.{outdir_p}fileset_DYEMu",
     "DYTau"     : f"samples.{outdir_p}fileset_DYTau",
     "signal" : f"samples.{outdir_p}fileset_signal",
@@ -78,9 +81,8 @@ samples = {
     "singleT": f"samples.{outdir_p}fileset_singleT",  ## more on this later
     "JetMET_2022": f"samples.{outdir_p}fileset_JetMET_2022",
     "Muon": f"samples.{outdir_p}fileset_Muon_2022",
-    "DYto2L-2Jets": f"samples.{outdir_p}fileset_DYto2L-2Jets",
-    'DYto2Tau-2Jets_0J': f"samples.{outdir_p}fileset_DYto2Tau-2Jets_0J",
-    'DYto2Tau-2Jets_0J_custom': f"samples.{outdir_p}fileset_DYto2Tau-2Jets_0J_custom"
+    "VBF": f"samples.{outdir_p}fileset_VBF",
+    "EWK": f"samples.{outdir_p}fileset_EWK",
 }
 
 module = importlib.import_module(samples[args.sample])
@@ -102,6 +104,7 @@ if nfiles != -1:
 
 ## first element of value is step_size, second is files_per_barch
 pars_per_sample = {
+    "W"  : [10_000, 100], 
     "Wto2Q"  : [10_000, 100], 
     "WtoLNu" : [10_000, 100],  
     "QCD"    : [10_000, 1],  
@@ -112,9 +115,12 @@ pars_per_sample = {
     "signal" : [10_000, 1],  
     "TT"     : [10_000, 1000],  
     "singleT": [10_000, 1000],  
+    "Top": [10_000, 1000],  
     "data"   : [10_000, 100], 
     "JetMET_2022": [10_000, 100],
     "Muon": [10_000, 1000],
+    "VBF"  : [10_000, 100], 
+    "EWK"  : [10_000, 100], 
 }
 
 
