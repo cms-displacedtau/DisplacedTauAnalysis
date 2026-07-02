@@ -95,9 +95,9 @@ all_samples_dict = {
       "ZZ", 
       ],
     "JetMET": [
-      #"JetMET_Run2022E",
+      "JetMET_Run2022E",
       "JetMET_Run2022F",
-      #"JetMET_Run2022G",
+      "JetMET_Run2022G",
       ], 
     "Muon": [
         #"Muon_Run2022E",
@@ -127,9 +127,9 @@ with open(f"./plots_config/{nanov}/mutau/v8/all_total_sumw.json", "r") as file:
     sum_gen_w = json.load(file)
     
 ## target lumi, for now fixed value
-#target_lumi = 26.7
+target_lumi = 26.7
 ## For era 2022 F
-target_lumi = 17.78
+#target_lumi = 17.78
 
 # int_lumi = ak.from_parquet("../sample_processing/my_skimData2018C").intLumi[0]
 #print(int_lumi)
@@ -159,13 +159,16 @@ histogram_dict = {}
 binning_dict = {}
 
 for process in available_processes:
+    if process not in os.listdir(sample_folder + '../'): continue
     print(process)
     tmp_string = f"faster_trial_{process}/faster_trial_{process}.root"
     tmp_file = sample_folder +  tmp_string
     events = NanoEventsFactory.from_root({tmp_file:"Events"}, schemaclass= PFNanoAODSchema).events()
     events = events[ak.flatten(abs(events.CorrectedJet.dxy) < 999)]
     events = events[ak.flatten(abs(events.CorrectedJet.dxyErr) < 999)]
-    events = events[ak.flatten(events.CorrectedJet.pt >= 200)]
+    events = events[ak.flatten(abs(events.CorrectedJet.pt) > 32)]
+    events = events[ak.flatten(abs(events.DisMuon.dxy) < 20E-4)]
+    events = events[events.CorrectedPFMET.pt > 105]
 
 
     ##target = "MET120_IsoTrk50"
@@ -270,7 +273,7 @@ for process in available_processes:
 
     for plot_name, settings in plot_settings.items():
         if "weight" in plot_name: continue
-        if "Jet_eta" not in plot_name: continue
+        if "PFMET" not in plot_name and "Jet_pt" not in plot_name: continue
         if "eventWeight" in plot_name: continue
         if "correction" in plot_name: continue
         if "resolution" in plot_name: continue
@@ -484,7 +487,7 @@ for plot_name, histograms in histogram_dict.items():
     #print("sharex partner:", ax_ratio.get_shared_x_axes().get_siblings(ax_ratio)) 
     # Saving with special name
     #filename = f"/eos/uscms/store/user/dally/DisplacedTauAnalysis/plots/{dataset_name}_{plot_name}"
-    filedir = "PR_score_JetPt200"
+    filedir = "PR_test"
     if filedir not in os.listdir('plots/'):
         os.mkdir(f'plots/{filedir}')
     #if filedir in os.listdir('plots/'):
