@@ -20,7 +20,8 @@ args = parser.parse_args()
 # directory on EOS with input files
 BASE_DIRS = [
 "/store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v19/",
-"/store/group/lpcdisptau/displacedTaus/nanoprod/summary/Run3_Summer22_chs_AK4PFCands_v19/"
+"/store/group/lpcdisptau/displacedTaus/nanoprod/summary/Run3_Summer22_chs_AK4PFCands_v19/",
+"/store/group/lpcdisptau/displacedTaus/nanoprod/summary/Run3_Summer22_chs_AK4PFCands_v21/"
 ]
 custom_nano_v = 'Summer22_CHS_v19'
 
