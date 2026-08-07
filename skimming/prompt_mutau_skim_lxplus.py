@@ -453,7 +453,7 @@ if __name__ == "__main__":
                 #death_timeout = '240',
                 #nanny=True,
 #                container_runtime = "none",
-                log_directory = "/uscmst1b_scratch/lpc1/3DayLifetime/condor/log/prompt_skim/v10",
+                log_directory = "/uscmst1b_scratch/lpc1/3DayLifetime/bskipwor/log/prompt_skim/v10",
 #                scheduler_options={
 #                    'port': n_port,
 #                    'host': socket.gethostname(),

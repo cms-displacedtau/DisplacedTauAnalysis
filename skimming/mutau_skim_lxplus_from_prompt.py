@@ -342,7 +342,7 @@ if __name__ == "__main__":
         cluster = LPCCondorCluster(
                 cores= 2,
                 memory='12GB',
-                log_directory = "/uscmst1b_scratch/lpc1/3DayLifetime/condor/log/prompt_skim/v10",
+                log_directory = "/uscmst1b_scratch/lpc1/3DayLifetime/bskipwor/log/prompt_skim/v10",
                 transfer_input_files=['utils.py', './selections/lumi_selections.py'],
                )
         cluster.adapt(minimum=1, maximum=200)#, wait_count=3)

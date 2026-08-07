@@ -302,7 +302,7 @@ if __name__ == "__main__":
                 #lcg = True,
                 #nanny = False,
                 #container_runtime = "none",
-                log_directory = f"/uscmst1b_scratch/lpc1/3DayLifetime/condor/log/selected/{args.skimversion}",
+                log_directory = f"/uscmst1b_scratch/lpc1/3DayLifetime/bskipwor/log/selected/{args.skimversion}",
                 transfer_input_files = ["selection_function.py", "utils.py", "Cert_Collisions2022_355100_362760_Golden.json", "jec/", "Material_Map_HIST.root"],
                 #scheduler_options={
                 #    'port': n_port,
