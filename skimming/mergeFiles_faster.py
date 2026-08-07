@@ -35,13 +35,9 @@ treeName = "Events"
 #sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/skim/Summer22_CHS_v10/prompt_mutau/v10/"
 #sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v5/PR_Mu/"
 #sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/pmutau/v7/PR_Mu50_LeadingPtJet_PackedSelection_PromptMuon/"
-sourceDir = "/eos/uscms/store/user/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v19/mutau/v8/SR_score"
+sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/SR"
 sampleDir = sourceDir
 
-selection = "QCD_CR"
-#selection = "TT_CR"
-#selection = "HPSTauMu"
-#selection = "jet_dmu"
 
 ## create merged directory if missing
 os.makedirs(os.path.join(sourceDir, mergeDir), exist_ok=True)

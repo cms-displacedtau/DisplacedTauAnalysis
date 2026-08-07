@@ -134,7 +134,7 @@ if __name__ == "__main__":
     cluster = LPCCondorCluster(
             cores=1,
             memory='4000MB',
-            log_directory = f"/uscmst1b_scratch/lpc1/3DayLifetime/condor/log/preprocess/",
+            log_directory = f"/uscmst1b_scratch/lpc1/3DayLifetime/bskipwor/log/preprocess/",
             transfer_input_files = ["utils.py"],
             job_extra_directives={
                 "should_transfer_files": "YES",
@@ -142,7 +142,7 @@ if __name__ == "__main__":
                 },
             job_script_prologue=[
                 "export XRD_RUNFORKHANDLER=1",  ### enables fork-safety in the XRootD client, to avoid deadlock when accessing EOS files
-                f"export X509_USER_PROXY=$HOME/x509up_u57864",
+                f"export X509_USER_PROXY=$HOME/x509up_u57757",
                 "export PYTHONPATH=$PYTHONPATH:$_CONDOR_SCRATCH_DIR:$HOME",
             ],
             )

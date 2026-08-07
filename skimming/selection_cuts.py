@@ -112,9 +112,9 @@ else:
     exit(0)
     
 
-out_folder = f'root://cmseos.fnal.gov//store/user/lpcdisptau/dally/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{selection_string}_score/'
+out_folder = f'root://cmseos.fnal.gov//store/user/lpcdisptau/bskipwor/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{selection_string}/'
 
-#out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/dally/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{selection_string}_JetDxy0p1cm/'
+#out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/bskipwor/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{selection_string}_JetDxy0p1cm/'
 
 
 ## define input samples
@@ -612,6 +612,9 @@ class SelectionProcessor(processor.ProcessorABC):
 
             #events = events[~(prescaled_l1 & unprescaled_l1)]
 
+            # This will need to be re-organized to use "methodC" for keeping signal muon along with all other DisMuons
+            # Will need to creat a new function in selection_function.py since event_selection function is
+            # written for cases when there is only one object in the array
             dismuons = events.DisMuon
             dismuons = dismuons[dismuons.mediumId == True]
             dismuons = dismuons[ak.argsort(dismuons[leading_muon_var], ascending=False, axis=1)]
@@ -753,8 +756,8 @@ if __name__ == "__main__":
         cluster = LPCCondorCluster(
                 cores=4,
                 memory='10GB',
-                log_directory = f"/uscmst1b_scratch/lpc1/3DayLifetime/condor/log/selected/{args.skimversion}",
-                transfer_input_files = ["selection_function.py", "utils.py", "Cert_Collisions2022_355100_362760_Golden.json", "jec/", "jetvetomap_2022EFG.json", "ScaleFactors_Muon_Z_ID_ISO_2022_EE_schemaV2.json", "ScaleFactors_Muon_Z_HLT_2022_EE_abseta_pt_schemaV2.json"],
+                log_directory = f"/uscmst1b_scratch/lpc1/3DayLifetime/bskipwor/log/selected/{args.skimversion}",
+                transfer_input_files = ["selection_function.py", "utils.py", "/eos/uscms/store/user/lpcdisptau/json/Cert_Collisions2022_355100_362760_Golden.json", "/eos/uscms/store/user/lpcdisptau/txt/jec", "/eos/uscms/store/user/lpcdisptau/json/jetvetomap_2022EFG.json", "/eos/uscms/store/user/lpcdisptau/json/ScaleFactors_Muon_Z_ID_ISO_2022_EE_schemaV2.json", "/eos/uscms/store/user/lpcdisptau/json/ScaleFactors_Muon_Z_HLT_2022_EE_abseta_pt_schemaV2.json"],
                 job_extra_directives={
                     "should_transfer_files": "YES",
                     '+JobFlavour': '"longlunch"',
