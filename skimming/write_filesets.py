@@ -25,8 +25,8 @@ BASE_DIRS = [
 ]
 custom_nano_v = 'Summer22_CHS_v19'
 
-XROOTD_PREFIX = "root://cms-xrd-global.cern.ch/"
-#XROOTD_PREFIX = "root://cmseos.fnal.gov/"
+#XROOTD_PREFIX = "root://cms-xrd-global.cern.ch/"
+XROOTD_PREFIX = "root://cmseos.fnal.gov/"
 EOS_LOC = 'root://cmseos.fnal.gov'
 outdir = 'samples/' + custom_nano_v + '/'
 
@@ -35,7 +35,7 @@ if args.skim != '':
     skim_folder = args.skim
     skim_version = args.skimversion
     BASE_DIRS = [
-      f"/store/user/lpcdisptau/dally/displacedTaus/skim/{custom_nano_v}/{skim_folder}/{skim_version}"
+      f"/store/user/lpcdisptau/bskipwor/displacedTaus/skim/{custom_nano_v}/{skim_folder}/{skim_version}"
     ]
     
     XROOTD_PREFIX = "root://cmseos.fnal.gov/"
