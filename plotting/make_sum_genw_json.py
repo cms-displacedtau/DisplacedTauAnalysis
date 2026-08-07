@@ -11,18 +11,18 @@ parser.add_argument(
 	help='Specify the custom nanoaod version to process')
 parser.add_argument(
 	"--skim",
-	default='prompt_mutau',
+	default='mutau',
 	required=False,
 	choices=['prompt_mutau','mutau'],
 	help='Specify input skim, which objects, and selections (Muon and HPSTau, or DisMuon and Jet)')
 parser.add_argument(
 	"--skimversion",
-	default='v1',
+	default='v19',
 	required=False,
 	help='If listing skimmed files, select which version of the inputs')
 args = parser.parse_args()
 
-processed_json_folder = f'/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/skim/{args.nanov}/{args.skim}/{args.skimversion}/'
+processed_json_folder = f'/eos/uscms/store/group/lpcdisptau/bskipwor/displacedTaus/skim/{args.nanov}/{args.skim}/{args.skimversion}/'
 print(f"Processed fileset: {processed_json_folder}")
 outdir = Path(f'plots_config/{args.nanov}/{args.skim}/{args.skimversion}')
 if not outdir.exists():

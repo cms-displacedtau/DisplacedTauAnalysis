@@ -24,10 +24,7 @@ hep.style.use("CMS")
 
 nanov = 'Summer22_CHS_v19/'
 # nanov = ''
-#sample_folder = f"/eos/uscms/store/user/dally/skim/{nanov}prompt_mutau/v8_nobJetVeto/selected/faster_trial/"
-#sample_folder = f"/eos/uscms/store/user/dally/skim/{nanov}mutau/v3_CorrectedJet/selected/faster_trial/"
-#sample_folder = f"/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v3/QCD_CR/faster_trial/"
-sample_folder = f"/eos/uscms/store/user/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v19/mutau/v8/PR_score/faster_trial/"
+sample_folder = f"/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/SR/faster_trial/"
 normalize = False
 
 #if "PR" in sample_folder:
@@ -161,7 +158,7 @@ xsec = xsec_and_br['xsec']
 br = xsec_and_br['br']
 
 ## load sum_gen_w from another JSON file
-with open(f"./plots_config/{nanov}/mutau/v8/all_total_sumw.json", "r") as file:
+with open(f"./plots_config/{nanov}/mutau/v19/all_total_sumw.json", "r") as file:
     sum_gen_w = json.load(file)
     
 ## target lumi, for now fixed value
@@ -197,7 +194,7 @@ histogram_dict = {}
 binning_dict = {}
 
 for process in available_processes:
-    #if process not in os.listdir(sample_folder + '../'): continue
+    if process not in os.listdir(sample_folder + '../'): continue
     print(f"Starting {process}")
     tmp_string = f"faster_trial_{process}/faster_trial_{process}.root"
     tmp_file = sample_folder +  tmp_string
@@ -295,7 +292,7 @@ for process in available_processes:
     #events["weight"] = abs(weights)
     for plot_name, settings in plot_settings.items():
         #if "Err" not in plot_name: continue
-        if "DisMuon_dxy" not in plot_name: continue
+        if "score" not in plot_name: continue
         if "PFCands" in plot_name: continue
         if "weight" in plot_name: continue
         if "correction" in plot_name: continue
@@ -587,7 +584,7 @@ for plot_name, histograms in histogram_dict.items():
         # Saving with special name
         #filename = f"/eos/uscms/store/user/dally/DisplacedTauAnalysis/plots/{dataset_name}_{plot_name}"
         plt.subplots_adjust(right=0.75)
-        filedir = "SR_score_BG"
+        filedir = "SR_signal_plots"
         if filedir not in os.listdir('plots/'):
             os.mkdir(f'plots/{filedir}')
         filename = f"./plots/{filedir}/{dataset_name}_{plot_name}_{mass}"

@@ -209,6 +209,20 @@
         "underflow": false,
         "overflow": false
     },
+    "Jet_score_full": {
+        "field": "CorrectedJet",
+        "variable": "disTauTag_score1",
+        "binning_linspace": [0, 1, 401],
+        "density": false,
+        "ylabel": "Events / 0.0025",
+        "xlabel": "jet score",
+        "color": "red",
+        "per_event": false,
+        "x_major_ticks": 0.1,
+        "x_minor_ticks": 0.02,
+        "underflow": false,
+        "overflow": false
+    },
     "DisMuon_pt": {
         "field": "DisMuon",
         "variable": "pt",
