@@ -201,6 +201,10 @@ selections_dict = {
   'HPSTauMu' : HPSTauMu,
 }
 
+# This function works on the assumption there is only one object in the array
+# Will need to make a new function for new "methodC" of keeping all DisMuons in the events
+# since the selections need to be applied to candidate muon not all other muons kept in the enents
+# as this function is for cases where only one muon is kept, not multiple
 def event_selection(events, selection):
 
     selections = selections_dict[selection]
