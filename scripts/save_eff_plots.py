@@ -105,49 +105,48 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
 #         input_file = load(f"inputs_study_propagation/histograms_{sample_name}_dR{delta_r_matching_threshold_string}_MaxLxy{maxLxy}_decayM{decayM}_pionPt{min_gen_pion_pt}_genTauPt{min_gen_tau_pt}_noTaggerScore_goodRecoProp.coffea")
         input_file = load(f"inputs_study_propagation/histograms_{sample_name}_dR{delta_r_matching_threshold_string}_MaxLxy{maxLxy}_decayM{decayM}_pfPt{min_gen_pion_pt}_genPionPt0_genTauPt{min_gen_tau_pt}_noTaggerScore_goodRecoProp.coffea")
        
-        hgen_dxy = input_file["hgen_dxy"]
-        hreco_dxy = input_file["hreco_dxy"]
-        hreco_ecal_dxy = input_file["hreco_ecal_dxy"]
+        h_den_dxy = input_file["h_den_dxy"]
+        h_num_dxy = input_file["h_num_dxy"]
+        h_num_ecal_dxy = input_file["h_num_ecal_dxy"]
     
-        hfail_dxy = input_file["hfail_dxy"]
-        hpass_dxy = input_file["hpass_dxy"]
-        hall_dxy = input_file["hall_dxy"]
+        h_fail_dxy = input_file["h_fail_dxy"]
+        h_pass_dxy = input_file["h_pass_dxy"]
     
-        hgen_dxy_zoom = input_file["hgen_dxy_zoom"]
-        hreco_dxy_zoom = input_file["hreco_dxy_zoom"]
-        hreco_ecal_dxy_zoom = input_file["hreco_ecal_dxy_zoom"]
+        h_den_dxy_zoom = input_file["h_den_dxy_zoom"]
+        h_num_dxy_zoom = input_file["h_num_dxy_zoom"]
+        h_num_ecal_dxy_zoom = input_file["h_num_ecal_dxy_zoom"]
     
-        hgen_pt = input_file["hgen_pt"]
-        hreco_pt = input_file["hreco_pt"]
-        hreco_ecal_pt = input_file["hreco_ecal_pt"]
-        hmatched_jet_pion_pt = input_file["hmatched_jet_pion_pt"]
-        hmatched_jet_pt = input_file["hmatched_jet_pt"]
-        hmatched_jet_dxy = input_file["hmatched_jet_dxy"]
+        h_den_pt = input_file["h_den_pt"]
+        h_num_pt = input_file["h_num_pt"]
+        h_num_ecal_pt = input_file["h_num_ecal_pt"]
+        h_num_jet_pion_pt = input_file["h_num_jet_pion_pt"]
+        h_num_jet_gvt_pt = input_file["h_num_jet_gvt_pt"]
+        h_num_jet_dxy = input_file["h_num_jet_dxy"]
         
-        heta_ecal_vs_dxy = input_file['heta_ecal_vs_dxy']
-        heta_ecal_vs_pt = input_file['heta_ecal_vs_pt']
-        heta_ecal_vs_eta = input_file['heta_ecal_vs_eta']
-        heta_ecal_vs_lxy = input_file['heta_ecal_vs_lxy']
-        heta_ecal_vs_tau_eta  = input_file['heta_ecal_vs_tau_eta']
-        hdxy_vs_lxy = input_file['hdxy_vs_lxy']
-        hfail_pt_vs_eta = input_file['hfail_pt_vs_eta']
+        h_eta_ecal_vs_dxy = input_file['h_eta_ecal_vs_dxy']
+        h_eta_ecal_vs_pt = input_file['h_eta_ecal_vs_pt']
+        h_eta_ecal_vs_eta = input_file['h_eta_ecal_vs_eta']
+        h_eta_ecal_vs_lxy = input_file['h_eta_ecal_vs_lxy']
+        h_eta_ecal_vs_tau_eta  = input_file['h_eta_ecal_vs_tau_eta']
+        h_dxy_vs_lxy = input_file['h_dxy_vs_lxy']
+        h_fail_pt_vs_eta = input_file['h_fail_pt_vs_eta']
     
-        hgen_lxy = input_file["hgen_lxy"]
-        hgen_tau_pt = input_file["hgen_tau_pt"]
+        h_gen_lxy = input_file["h_gen_lxy"]
+        h_gen_tau_pt = input_file["h_gen_tau_pt"]
         
-    #     hreco_lxy = input_file["hreco_lxy"]
-    #     hreco_ecal_lxy = input_file["hreco_ecal_lxy"]
+    #     h_reco_lxy = input_file["h_reco_lxy"]
+    #     h_reco_ecal_lxy = input_file["h_reco_ecal_lxy"]
     
-        hdeltaR_custom_zoomout = input_file["hdeltaR_custom_zoomout"]
-        hdeltaR_custom = input_file["hdeltaR_custom"]
-        hdeltaR = input_file["hdeltaR"]
-        hdelta = input_file["hdelta"]
+        h_deltaR_ecal_zoomout = input_file["h_deltaR_ecal_zoomout"]
+        h_deltaR_ecal = input_file["h_deltaR_ecal"]
+        h_deltaR = input_file["h_deltaR"]
+        h_delta = input_file["h_delta"]
         
         h_allgenpions_eta_ecal_vs_eta = input_file["h_allgenpions_eta_ecal_vs_eta"]
-        hgen_pt_plot = input_file["hgen_pt_plot"]
-        hgen_pt_zoom_plot = input_file["hgen_pt_zoom_plot"]
-        hreco_pt_plot = input_file["hreco_pt_plot"]
-        hreco_pt_zoom_plot = input_file["hreco_pt_zoom_plot"]
+        h_gen_pt = input_file["h_gen_pt"]
+        h_gen_pt_zoom = input_file["h_gen_pt_zoom"]
+        h_reco_pt = input_file["h_reco_pt"]
+        h_reco_pt_zoom = input_file["h_reco_pt_zoom"]
     
         h_deta_bump = input_file["h_deta_bump"]
         h_dphi_bump = input_file["h_dphi_bump"]
@@ -160,13 +159,13 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
         h_lxy_bump = input_file["h_lxy_bump"]
         h_lxy_all = input_file["h_lxy_all"]
     
-        hphi_ecal_vs_phi_bump = input_file["hphi_ecal_vs_phi_bump"]
-        hgenphi_ecal_vs_genphi_bump = input_file["hgenphi_ecal_vs_genphi_bump"]
+        h_phi_ecal_vs_phi_bump = input_file["h_phi_ecal_vs_phi_bump"]
+        h_genphi_ecal_vs_genphi_bump = input_file["h_genphi_ecal_vs_genphi_bump"]
         h_pdgid_bump = input_file["h_pdgid_bump"]
         h_geneta_bump = input_file["h_geneta_bump"]
     
-        hphi_ecal_vs_phi_worse = input_file["hphi_ecal_vs_phi_worse"]
-        hgenphi_ecal_vs_genphi_worse = input_file["hgenphi_ecal_vs_genphi_worse"]
+        h_phi_ecal_vs_phi_worse = input_file["h_phi_ecal_vs_phi_worse"]
+        h_genphi_ecal_vs_genphi_worse = input_file["h_genphi_ecal_vs_genphi_worse"]
         h_deta_worse = input_file["h_deta_worse"]
         h_dphi_worse = input_file["h_dphi_worse"]
         h_deta_ecal_worse = input_file["h_deta_ecal_worse"]
@@ -174,42 +173,42 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
         h_dpt_worse = input_file["h_dpt_worse"]
         h_dcharge_worse = input_file["h_dcharge_worse"]
         h_lxy_worse = input_file["h_lxy_worse"]
-        hpt_vs_genpt_worse = input_file["hpt_vs_genpt_worse"]
-        hdxy_vs_gendxy_worse = input_file["hdxy_vs_gendxy_worse"]
+        h_pt_vs_genpt_worse = input_file["h_pt_vs_genpt_worse"]
+        h_dxy_vs_gendxy_worse = input_file["h_dxy_vs_gendxy_worse"]
 
-        hmatched_alljet_pt = input_file["hmatched_alljet_pt"]
-        hgen_pt_for_alljet = input_file["hgen_pt_for_alljet"]
+        h_num_gvt_pt_for_alljet = input_file["h_num_gvt_pt_for_alljet"]
+        h_den_gvt_pt_for_alljet = input_file["h_den_gvt_pt_for_alljet"]
         
-        hreco_gvtpt = input_file["hreco_gvtpt"]
-        hreco_ecal_gvtpt = input_file["hreco_ecal_gvtpt"]
-        hgen_gvtpt = input_file["hgen_gvtpt"]
+        h_num_gvt_pt = input_file["h_num_gvt_pt"]
+        h_num_ecal_gvt_pt = input_file["h_num_ecal_gvt_pt"]
+        h_den_gvt_pt = input_file["h_den_gvt_pt"]
          
     
 
 
 
         fig, ax  = clear_and_set_name(sample_name)
-        hgen_pt_plot.plot()
+        h_gen_pt.plot()
         plt.savefig(f"{plot_dir}/pt_genpions_{sample_name}{tag}.pdf")
         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        hgen_pt_zoom_plot.plot()
+        h_gen_pt_zoom.plot()
         plt.savefig(f"{plot_dir}/pt_zoom_genpions_{sample_name}{tag}.pdf")
         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        hreco_pt_plot.plot()
+        h_reco_pt.plot()
         plt.savefig(f"{plot_dir}/pt_recopions_{sample_name}{tag}.pdf")
         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        hreco_pt_zoom_plot.plot()
+        h_reco_pt_zoom.plot()
         plt.savefig(f"{plot_dir}/pt_zoom_recopions_{sample_name}{tag}.pdf")
         plt.close()
         
         fig, ax  = clear_and_set_name(sample_name)
-        hgen_tau_pt.plot()
+        h_gen_tau_pt.plot()
         plt.savefig(f"{plot_dir}/pt_genvistau_{sample_name}{tag}.pdf")
         plt.close()
         
@@ -240,11 +239,11 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
     #     exit(0)
     
 #         fig, ax  = clear_and_set_name(sample_name)
-#         plot_efficiency(hreco_dxy, 
-#                         hgen_dxy, 
+#         plot_efficiency(h_num_dxy, 
+#                         h_den_dxy, 
 #                         label='deltaR')
-#         plot_efficiency(hreco_ecal_dxy, 
-#                         hgen_dxy, 
+#         plot_efficiency(h_num_ecal_dxy, 
+#                         h_den_dxy, 
 #                         label='deltaR ecal')
 #         ax.set_ylabel("Matched GVT/Total GVT")
 #         ax.set_xlabel("GVT_dxy [cm]")
@@ -256,18 +255,18 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
 #         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        plot_efficiency(hreco_dxy_zoom, 
-                        hgen_dxy_zoom, 
+        plot_efficiency(h_num_dxy_zoom, 
+                        h_den_dxy_zoom, 
                         label='deltaR')
-        plot_efficiency(hreco_ecal_dxy_zoom, 
-                        hgen_dxy_zoom, 
+        plot_efficiency(h_num_ecal_dxy_zoom, 
+                        h_den_dxy_zoom, 
                         label='deltaR ecal')
-        plot_efficiency(hmatched_jet_dxy, 
-                        hgen_dxy_zoom, 
+        plot_efficiency(h_num_jet_dxy, 
+                        h_den_dxy_zoom, 
                         label='jet matching')
     
         ax.set_ylabel("Matched GVT/Total GVT")
-        ax.set_xlabel("GVT_dxy [cm]")
+        ax.set_xlabel("leading pion dxy [cm]")
         ax.set_ylim(0,1)
         ax.set_title(sample_label)
         plt.legend()
@@ -279,18 +278,17 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
     
     
         fig, ax  = clear_and_set_name(sample_name)
-        plot_efficiency(hreco_pt, 
-                        hgen_pt, 
+        plot_efficiency(h_num_pt, 
+                        h_den_pt, 
                         label='deltaR')
-        plot_efficiency(hreco_ecal_pt, 
-                        hgen_pt, 
+        plot_efficiency(h_num_ecal_pt, 
+                        h_den_pt, 
                         label='deltaR ecal')
-        plot_efficiency(hmatched_jet_pion_pt, 
-                        hgen_pt, 
+        plot_efficiency(h_num_jet_pion_pt, 
+                        h_den_pt, 
                         label='jet matching')
-    
         ax.set_ylabel("Matched GVT/Total GVT")
-        ax.set_xlabel("pion pt [GeV]")
+        ax.set_xlabel("leading pion pt [GeV]")
         ax.set_title(sample_label)
         plt.legend()
         plt.grid(True)
@@ -299,15 +297,15 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
         
         
         fig, ax  = clear_and_set_name(sample_name)
-        plot_efficiency(hmatched_alljet_pt, 
-                        hgen_pt_for_alljet, 
-                        label='all jets')
-        plot_efficiency(hreco_gvtpt, 
-                        hgen_gvtpt,
+        plot_efficiency(h_num_gvt_pt, 
+                        h_den_gvt_pt,
                         label='delta R')
-        plot_efficiency(hreco_ecal_gvtpt, 
-                        hgen_gvtpt,
+        plot_efficiency(h_num_ecal_gvt_pt, 
+                        h_den_gvt_pt,
                         label='delta R ecal')
+        plot_efficiency(h_num_gvt_pt_for_alljet, 
+                        h_den_gvt_pt_for_alljet, 
+                        label='all jets')
                         
         ax.set_ylabel("Matched GVT/Total GVT")
         ax.set_xlabel("GVT pt [GeV]")
@@ -321,17 +319,17 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
     
     
         fig, ax  = clear_and_set_name(sample_name)
-        hdeltaR_custom.plot(ax=ax, label = 'deltaR ecal')
-        hdeltaR.plot(ax=ax, label = 'deltaR')
-        print (sample_label, ' ->  n entries in deltaR: ', hdeltaR.sum())
+        h_deltaR_ecal.plot(ax=ax, label = 'deltaR ecal')
+        h_deltaR.plot(ax=ax, label = 'deltaR')
+        print (sample_label, ' ->  n entries in deltaR: ', h_deltaR.sum())
         set_common_labels_scale_legend_grid(ax)
         ax.set_xlabel("deltaR")
         plt.savefig(f"{plot_dir}/deltaR_{sample_name}{tag}.pdf")
         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        print (sample_label, ' ->  n entries in deltaR OUT: ', hdeltaR_custom_zoomout.sum())
-        hdeltaR_custom_zoomout.plot(ax=ax, label = 'deltaR ecal')
+        print (sample_label, ' ->  n entries in deltaR OUT: ', h_deltaR_ecal_zoomout.sum())
+        h_deltaR_ecal_zoomout.plot(ax=ax, label = 'deltaR ecal')
         ax.set_ylabel("events")
         ax.set_xlabel("deltaR")
     #     plt.yscale('log')
@@ -343,29 +341,29 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
         import matplotlib.colors as colors
     
         fig, ax  = clear_and_set_name(sample_name)
-        hdelta.plot(    norm=colors.LogNorm(vmin=1, vmax=10000))  
+        h_delta.plot(    norm=colors.LogNorm(vmin=1, vmax=10000))  
         plt.savefig(f"{plot_dir}/2D_deltaR_{sample_name}{tag}.pdf")
         plt.close()
     
     
         ### study events with large deltaR ecal
         fig, ax  = clear_and_set_name(sample_name)
-        hphi_ecal_vs_phi_worse.plot()
+        h_phi_ecal_vs_phi_worse.plot()
         plt.savefig(f"{plot_dir}/worse_2D_reco_phi_{sample_name}{tag}.pdf")
         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        hgenphi_ecal_vs_genphi_worse.plot()
+        h_genphi_ecal_vs_genphi_worse.plot()
         plt.savefig(f"{plot_dir}/worse_2D_gen_phi_{sample_name}{tag}.pdf")
         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        hpt_vs_genpt_worse.plot()
+        h_pt_vs_genpt_worse.plot()
         plt.savefig(f"{plot_dir}/worse_2D_pt_vs_genpt_{sample_name}{tag}.pdf")
         plt.close()
 
         fig, ax  = clear_and_set_name(sample_name)
-        hdxy_vs_gendxy_worse.plot()
+        h_dxy_vs_gendxy_worse.plot()
         plt.savefig(f"{plot_dir}/worse_2D_dxy_vs_gendxy_{sample_name}{tag}.pdf")
         plt.close()
         
@@ -422,12 +420,12 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
 #         plt.close()
 #         
 #         fig, ax  = clear_and_set_name(sample_name)
-#         hphi_ecal_vs_phi_bump.plot()
+#         h_phi_ecal_vs_phi_bump.plot()
 #         plt.savefig(f"{plot_dir}/bump_2D_reco_phi_{sample_name}{tag}.pdf")
 #         plt.close()
 #     
 #         fig, ax  = clear_and_set_name(sample_name)
-#         hgenphi_ecal_vs_genphi_bump.plot()
+#         h_genphi_ecal_vs_genphi_bump.plot()
 #         plt.savefig(f"{plot_dir}/bump_2D_gen_phi_{sample_name}{tag}.pdf")
 #         plt.close()
 #     
@@ -474,59 +472,59 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
     
     
         fig, ax  = clear_and_set_name(sample_name)
-        heta_ecal_vs_dxy.plot()
+        h_eta_ecal_vs_dxy.plot()
         plt.savefig(f"{plot_dir}/2D_eta_ecal_vs_dxy_{sample_name}{tag}.pdf")
         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        heta_ecal_vs_pt.plot()
+        h_eta_ecal_vs_pt.plot()
         plt.savefig(f"{plot_dir}/2D_eta_ecal_vs_pt_{sample_name}{tag}.pdf")
         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        heta_ecal_vs_eta.plot()
+        h_eta_ecal_vs_eta.plot()
         plt.savefig(f"{plot_dir}/2D_eta_ecal_vs_eta_{sample_name}{tag}.pdf")
         plt.close()
     
 #         fig, ax  = clear_and_set_name(sample_name)
-#         heta_ecal_vs_lxy.plot()
+#         h_eta_ecal_vs_lxy.plot()
 #         plt.savefig(f"{plot_dir}/2D_eta_ecal_vs_lxy_{sample_name}{tag}.pdf")
 #         plt.close()
     
 #         fig, ax  = clear_and_set_name(sample_name)
-#         heta_ecal_vs_tau_eta.plot()
+#         h_eta_ecal_vs_tau_eta.plot()
 #         plt.savefig(f"{plot_dir}/2D_eta_ecal_vs_gentau_eta_{sample_name}{tag}.pdf")
 #         plt.close()
         
         fig, ax  = clear_and_set_name(sample_name)
-        hdxy_vs_lxy.plot(ax=ax)#, cmin=1)
+        h_dxy_vs_lxy.plot(ax=ax)#, cmin=1)
         plt.savefig(f"{plot_dir}/2D_dxy_vs_lxy_{sample_name}{tag}.pdf")
         plt.close()    
         
         fig, ax  = clear_and_set_name(sample_name)
-        hfail_pt_vs_eta.plot()
+        h_fail_pt_vs_eta.plot()
         plt.savefig(f"{plot_dir}/2D_fail_pt_vs_eta_{sample_name}{tag}.pdf")
         plt.close()
     
         fig, ax  = clear_and_set_name(sample_name)
-        hfail_dxy.plot(label='fail')
-        hpass_dxy.plot(label='pass')
-        hall_dxy.plot(label='all')
+        h_fail_dxy.plot(label='fail')
+        h_pass_dxy.plot(label='pass')
+        h_den_dxy.plot(label='all')
         plt.legend()
         plt.savefig(f"{plot_dir}/dxy_compare_{sample_name}{tag}.pdf")
         plt.close()
     
 #         fig, ax  = clear_and_set_name(sample_name)
-#         hgen_lxy.plot(label='all')
+#         h_gen_lxy.plot(label='all')
 #         plt.legend()
 #         plt.savefig(f"{plot_dir}/lxy_gen_{sample_name}{tag}.pdf")
 #         plt.close()
     
     
         fig, ax = clear_and_set_name(sample_name)
-        hgen_dxy.plot(label='gen')
-        hreco_dxy.plot(label='gen matched to reco')
-        hreco_ecal_dxy.plot(label='gen matched to reco ecal')
+#         h_den_dxy.plot(label='gen')
+        h_num_dxy.plot(label='gen matched to reco')
+        h_num_ecal_dxy.plot(label='gen matched to reco ecal')
         plt.legend()
         plt.savefig(f"{plot_dir}/dxy_gen_{sample_name}{tag}.pdf")
         plt.close()
@@ -539,7 +537,7 @@ for min_gen_pion_pt,delta_r_matching_threshold in itertools.product(pion_pt_thre
 #     plt.clf()
 #     fig, ax = plt.subplots(2, 1, figsize=(8,10))
 #     ax[0].title.set_text(sample_name)
-#     hreco_ecal_dxy.plot_ratio(hgen_dxy,
+#     h_num_ecal_dxy.plot_ratio(h_gen_dxy,
 #                               rp_num_label = "Matched GVT",
 #                               rp_denom_label = "All GVT",
 #                               rp_uncertainty = 'efficiency',
