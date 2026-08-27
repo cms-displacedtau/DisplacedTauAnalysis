@@ -20,6 +20,9 @@ new_dxy_bins_eff = np.logspace(-2, 1.7, 10)
 pt_bins_eff = np.logspace(.001, 2.7, 15) ## np.logspace(1.5, 2.7, 12)
 dxy_bins = np.arange(0, 100, 1)
 
+edges_x = [-101, -98, -58]
+edges_x += list(np.linspace(-3, 3, 61))  
+
 
 class TauProcessor(processor.ProcessorABC):
 
@@ -63,12 +66,10 @@ class TauProcessor(processor.ProcessorABC):
             (event_.GenVisTau.pt > self.min_gen_tau_pt_) &
             (abs(event_.GenVisTau.eta) < max_eta)
         ]
-        tau_vx = gvt_.parent.distinctParent.vx - ak.firsts(gvt_.parent.distinctChildren.vx, axis =2)
-        tau_vy = gvt_.parent.distinctParent.vy - ak.firsts(gvt_.parent.distinctChildren.vy, axis =2)
-        Lxy = np.sqrt(tau_vx**2 + tau_vy**2)
-        gvt_ = ak.with_field(gvt_, Lxy, "pion_lxy")
+        tau_vx = gvt_.parent.distinctParent.vx - ak.firsts(gvt_.parent.distinctChildren.vx, axis=2)
+        tau_vy = gvt_.parent.distinctParent.vy - ak.firsts(gvt_.parent.distinctChildren.vy, axis=2)
+        gvt_ = ak.with_field(gvt_, np.sqrt(tau_vx**2 + tau_vy**2), "pion_lxy")
         return gvt_
-    
 
     def calc_and_add_dxy_gen_pion(self, pions_from_taus_, events_):
         counts_pions_ = ak.num(pions_from_taus_, axis=1)
@@ -83,8 +84,7 @@ class TauProcessor(processor.ProcessorABC):
         gen_pions_from_taus_ = self.get_gen_hadrons_from_taus(event_)
         self.calc_and_add_dxy_gen_pion(gen_pions_from_taus_, event_)
         sorted_gen_pions_ = gen_pions_from_taus_[ak.argsort(gen_pions_from_taus_.pt, ascending=False)]
-        leading_gen_pion_ = sorted_gen_pions_[:, :1]
-        return leading_gen_pion_
+        return sorted_gen_pions_[:, :1]
     
     def calc_and_add_dxy_gen_muon(self, muons_from_taus_, events_):
         counts_muons_ = ak.num(muons_from_taus_, axis=1)
@@ -116,19 +116,8 @@ class TauProcessor(processor.ProcessorABC):
         return leading_jet_
     
     def get_charged_pf(self, leading_jet_, min_reco_pf_pt_):
-        reco_pf_ = leading_jet_.constituents.pf
-        reco_pf_ = reco_pf_[(reco_pf_.charge != 0)]
-        reco_pf_ = reco_pf_[(reco_pf_.pt > min_reco_pf_pt_)]
-        return reco_pf_
-    
-#     def delta_r_ecal(self, reco_obj, gen_obj):
-#         ### compute deltaR using coords at the ecal surface.
-#         ### this is specific to pion as it uses at_ecal_pion
-#     
-#         dphi = np.abs(reco_obj.phi_at_ecal - gen_obj.phi_at_ecal_pion)
-#         dphi = ak.where(dphi > np.pi, 2*np.pi - dphi, dphi)
-#         deta = reco_obj.eta_at_ecal - gen_obj.eta_at_ecal_pion
-#         return np.sqrt(deta**2 + dphi**2)
+        pf_ = leading_jet_.constituents.pf
+        return pf_[(pf_.charge != 0) & (pf_.pt > min_reco_pf_pt_)]
 
 
     def process(self, events):
@@ -138,200 +127,159 @@ class TauProcessor(processor.ProcessorABC):
         cutflow['initial'] = len(events)
         print(f"[{dataset}] Events before any filter: {cutflow['initial']}")
 
-        edges_x = [-101, -98, -58]
-        edges_x += list(np.linspace(-3, 3, 61))  
-        h_allgenpions_eta_ecal_vs_eta = ( Hist.new
+        H = {}
+        H['h_allgenpions_eta_ecal_vs_eta'] = ( Hist.new
             .Var(edges_x, name = "gen_eta_at_ecal", label = "gen_eta_at_ecal")
             .Reg(50,  -2.5, 2.5, name = "gen_eta", label = "gen_eta")
             .Double()
         )
 
-        h_pt = ( Hist.new
+        H['h_pt'] = ( Hist.new
             .Reg(200, 0, 100, name = "recoPT", label = "reco pT (GeV)")
             .Reg(200, 0, 100, name = "genPT" , label = "gen pT (GeV)")
             .Double()
         )
-        h_delta = ( Hist.new
+        H['h_delta'] = ( Hist.new
             .Reg(100, 0, 4, name = "deltaR", label = "deltaR")
             .Reg(100, 0, 4, name = "deltaR_ecal", label = "deltaR at ECAL")
             .Double()
         )
 
-        h_deltaR_vs_dxy= ( Hist.new
+        H['h_deltaR_vs_dxy'] = ( Hist.new
             .Reg(1500, 0, 150, name = "deltaR_ecal", label = "deltaR at ECAL")
             .Reg(200,  0, 100, name = "dxy", label = "dxy")
             .Double()
         )
-        h_eta_ecal_vs_dxy= ( Hist.new
+        H['h_eta_ecal_vs_dxy'] = ( Hist.new
             .Reg(250, -102, 2.5, name = "eta_at_ecal", label = "eta_at_ecal")
             .Reg(120,  0, 60, name = "dxy", label = "gen_dxy")
             .Double()
         )
-        h_eta_ecal_vs_pt = ( Hist.new
+        H['h_eta_ecal_vs_pt'] = ( Hist.new
             .Reg(250, -102, 2.5, name = "eta_at_ecal", label = "eta_at_ecal")
             .Reg(200,  0, 200, name = "gen_pt", label = "gen pion pt")
             .Double()
         )
-        h_eta_ecal_vs_eta = ( Hist.new
+        H['h_eta_ecal_vs_eta'] = ( Hist.new
             .Var(edges_x, name = "eta_at_ecal", label = "eta_at_ecal")
             .Reg(50,  -2.5, 2.5, name = "gen_eta", label = "gen_eta")
             .Double()
         )
-        h_eta_ecal_vs_lxy= ( Hist.new
+        H['h_eta_ecal_vs_lxy'] = ( Hist.new
             .Var(edges_x, name = "eta_at_ecal", label = "eta_at_ecal")
             .Reg(200,  0, 200, name = "gen_lxy", label = "gen_lxy")
             .Double()
         )
-        h_eta_ecal_vs_tau_eta = ( Hist.new
+        H['h_eta_ecal_vs_tau_eta'] = ( Hist.new
             .Var(edges_x, name = "eta_at_ecal", label = "eta_at_ecal")
             .Reg(125,  -2.5, 2.5, name = "gen_tau_eta", label = "gen_tau_eta")
             .Double()
         )
-        h_dxy_vs_lxy = ( Hist.new
+        H['h_dxy_vs_lxy'] = ( Hist.new
             .Reg(200,  0, 100, name = "dxy", label = "gen_dxy")
             .Reg(200,  0, 200, name = "gen_lxy", label = "gen_lxy")
             .Double()
         )
-        h_fail_pt_vs_eta = ( Hist.new
+        H['h_fail_pt_vs_eta'] = ( Hist.new
             .Reg(125, -2.5, 2.5, name = "eta", label = "eta")
             .Reg(120,  40, 300, name = "pt", label = "pt")
             .Double()
         )
-        h_deltaR = Hist.new.Reg(100, 0, 6, name = "deltaR", label = "deltaR").Double()
-        h_deltaR_ecal = Hist.new.Reg(100, 0, 6, name = "deltaR_ecal", label = "deltaR_ecal").Double()
-        h_deltaR_ecal_zoomout = Hist.new.Reg(400, 110, 150, name = "deltaR_ecal", label = "deltaR_ecal").Double()
+        H['h_deltaR'] = Hist.new.Reg(100, 0, 6, name = "deltaR", label = "deltaR").Double()
+        H['h_deltaR_ecal'] = Hist.new.Reg(100, 0, 6, name = "deltaR_ecal", label = "deltaR_ecal").Double()
+        H['h_deltaR_ecal_zoomout'] = Hist.new.Reg(400, 110, 150, name = "deltaR_ecal", label = "deltaR_ecal").Double()
 
-        h_gen_tau_pt = Hist.new.Reg(300,0,300, name = "gen_tau_pt", label = "gen tau pt").Double()
+        H['h_gen_tau_pt'] = Hist.new.Reg(300,0,300, name = "gen_tau_pt", label = "gen tau pt").Double()
         
-        h_num_dxy      = Hist.new.Var(dxy_bins_eff, name = "dxy", label = "matched dxy").Double()
-        h_num_ecal_dxy = Hist.new.Var(dxy_bins_eff, name = "dxy", label = "ecal matched dxy").Double()
-        h_den_dxy      = Hist.new.Var(dxy_bins_eff, name = "dxy", label = "gen dxy").Double()
-        h_fail_dxy     = Hist.new.Var(dxy_bins, name = "dxy", label = "gen dxy").Double()
-        h_pass_dxy     = Hist.new.Var(dxy_bins, name = "dxy", label = "gen dxy").Double()
+        H['h_num_dxy']      = Hist.new.Var(dxy_bins_eff, name = "dxy", label = "matched dxy").Double()
+        H['h_num_ecal_dxy'] = Hist.new.Var(dxy_bins_eff, name = "dxy", label = "ecal matched dxy").Double()
+        H['h_den_dxy']      = Hist.new.Var(dxy_bins_eff, name = "dxy", label = "gen dxy").Double()
+        H['h_fail_dxy']     = Hist.new.Var(dxy_bins, name = "dxy", label = "gen dxy").Double()
+        H['h_pass_dxy']     = Hist.new.Var(dxy_bins, name = "dxy", label = "gen dxy").Double()
 
-        h_num_dxy_zoom      = Hist.new.Var(new_dxy_bins_eff, name = "dxy", label = "reco dxy").Double()
-        h_num_ecal_dxy_zoom = Hist.new.Var(new_dxy_bins_eff, name = "dxy", label = "ecal reco dxy").Double()
-        h_den_dxy_zoom      = Hist.new.Var(new_dxy_bins_eff, name = "dxy", label = "gen dxy").Double()
+        H['h_num_dxy_zoom']      = Hist.new.Var(new_dxy_bins_eff, name = "dxy", label = "reco dxy").Double()
+        H['h_num_ecal_dxy_zoom'] = Hist.new.Var(new_dxy_bins_eff, name = "dxy", label = "ecal reco dxy").Double()
+        H['h_den_dxy_zoom']      = Hist.new.Var(new_dxy_bins_eff, name = "dxy", label = "gen dxy").Double()
 
-        h_reco_lxy              = Hist.new.Var(lxy_bins_eff, name = "reco_lxy", label = "reco lxy").Double()
-        h_reco_ecal_lxy         = Hist.new.Var(lxy_bins_eff, name = "reco_ecal_lxy", label = "ecal reco lxy").Double()
-        h_gen_lxy               = Hist.new.Var(lxy_bins_eff, name = "gen_lxy", label = "gen lxy").Double()
-        h_num_pt                = Hist.new.Var(pt_bins_eff, name = "reco_pt", label = "reco pt").Double()
-        h_num_ecal_pt           = Hist.new.Var(pt_bins_eff, name = "reco_ecal_pt", label = "ecal reco pt").Double()
-        h_den_pt                = Hist.new.Var(pt_bins_eff, name = "gen_pt", label = "gen pt").Double()
-        h_num_jet_dxy           = Hist.new.Var(new_dxy_bins_eff, name = "jet_dxy", label = "matched Jet dxy (cm)").Double()
-        h_num_jet_gvt_pt        = Hist.new.Var(pt_bins_eff, name = "jet_pt", label = "matched Jet pT (GeV)").Double()
-        h_num_jet_pion_pt       = Hist.new.Var(pt_bins_eff, name = "jet_pion_pt", label = "matched-jet leading pion pT (GeV)").Double()
-        h_num_gvt_pt_for_alljet = Hist.new.Var(pt_bins_eff, name = "jet_pt", label = "matched Jet pT (GeV)").Double()
-        h_den_gvt_pt_for_alljet = Hist.new.Var(pt_bins_eff, name = "gen_pt", label = "gen pt").Double()
+        H['h_reco_lxy']              = Hist.new.Var(lxy_bins_eff, name = "reco_lxy", label = "reco lxy").Double()
+        H['h_reco_ecal_lxy']         = Hist.new.Var(lxy_bins_eff, name = "reco_ecal_lxy", label = "ecal reco lxy").Double()
+        H['h_gen_lxy']               = Hist.new.Var(lxy_bins_eff, name = "gen_lxy", label = "gen lxy").Double()
+        H['h_num_pt']                = Hist.new.Var(pt_bins_eff, name = "reco_pt", label = "reco pt").Double()
+        H['h_num_ecal_pt']           = Hist.new.Var(pt_bins_eff, name = "reco_ecal_pt", label = "ecal reco pt").Double()
+        H['h_den_pt']                = Hist.new.Var(pt_bins_eff, name = "gen_pt", label = "gen pt").Double()
+        H['h_num_jet_dxy']           = Hist.new.Var(new_dxy_bins_eff, name = "jet_dxy", label = "matched Jet dxy (cm)").Double()
+        H['h_num_jet_gvt_pt']        = Hist.new.Var(pt_bins_eff, name = "jet_pt", label = "matched Jet pT (GeV)").Double()
+        H['h_num_jet_pion_pt']       = Hist.new.Var(pt_bins_eff, name = "jet_pion_pt", label = "matched-jet leading pion pT (GeV)").Double()
+        H['h_num_gvt_pt_for_alljet'] = Hist.new.Var(pt_bins_eff, name = "jet_pt", label = "matched Jet pT (GeV)").Double()
+        H['h_den_gvt_pt_for_alljet'] = Hist.new.Var(pt_bins_eff, name = "gen_pt", label = "gen pt").Double()
 
-        h_reco_pt         = Hist.new.Reg(300, 0, 300, name = "reco_pt", label = "reco pt").Double()
-        h_reco_pt_zoom    = Hist.new.Reg(300, 0, 30,  name = "reco_pt", label = "reco pt").Double()
-        h_gen_pt          = Hist.new.Reg(300, 0, 300, name = "gen_pt", label = "gen pt").Double()
-        h_gen_pt_zoom     = Hist.new.Reg(300, 0, 30,  name = "gen_pt", label = "gen pt").Double()
-        h_num_gvt_pt      = Hist.new.Var(pt_bins_eff,  name = "reco_gvtpt", label = "reco gvt pt").Double()
-        h_num_ecal_gvt_pt = Hist.new.Var(pt_bins_eff,  name = "reco_ecal_gvtpt", label = "ecal reco gvt pt").Double()
-        h_den_gvt_pt      = Hist.new.Var(pt_bins_eff,  name = "gen_gvtpt", label = "gen gvt pt").Double()
+        H['h_reco_pt']         = Hist.new.Reg(300, 0, 300, name = "reco_pt", label = "reco pt").Double()
+        H['h_reco_pt_zoom']    = Hist.new.Reg(300, 0, 30,  name = "reco_pt", label = "reco pt").Double()
+        H['h_gen_pt']          = Hist.new.Reg(300, 0, 300, name = "gen_pt", label = "gen pt").Double()
+        H['h_gen_pt_zoom']     = Hist.new.Reg(300, 0, 30,  name = "gen_pt", label = "gen pt").Double()
+        H['h_num_gvt_pt']      = Hist.new.Var(pt_bins_eff,  name = "reco_gvtpt", label = "reco gvt pt").Double()
+        H['h_num_ecal_gvt_pt'] = Hist.new.Var(pt_bins_eff,  name = "reco_ecal_gvtpt", label = "ecal reco gvt pt").Double()
+        H['h_den_gvt_pt']      = Hist.new.Var(pt_bins_eff,  name = "gen_gvtpt", label = "gen gvt pt").Double()
       
         
         ## plots for events where deltaR_ecal is around 3
-        h_phi_ecal_vs_phi_bump = ( Hist.new
+        H['h_phi_ecal_vs_phi_bump'] = ( Hist.new
             .Reg(80,  -3.2, 3.2, name = "phi_at_ecal", label = "phi_at_ecal")
             .Reg(80,  -3.2, 3.2, name = "phi", label = "phi")
             .Double()
         )
-        h_genphi_ecal_vs_genphi_bump = ( Hist.new
+        H['h_genphi_ecal_vs_genphi_bump'] = ( Hist.new
             .Reg(80,  -3.2, 3.2, name = "genphi_at_ecal", label = "genphi_at_ecal")
             .Reg(80,  -3.2, 3.2, name = "genphi", label = "genphi")
             .Double()
         )
-        h_deta_bump      = Hist.new.Reg(100, -5, 5, name = "deta", label = "deltaEta (origin)").Double()
-        h_dphi_bump      = Hist.new.Reg(100, 0, 3.5, name = "dphi", label = "deltaPhi (origin)").Double()
-        h_deta_ecal_bump = Hist.new.Reg(100, -5, 5, name = "deta_ecal", label = "deltaEta (ECAL)").Double()
-        h_dphi_ecal_bump = Hist.new.Reg(100, 0, 3.5, name = "dphi_ecal", label = "deltaPhi (ECAL)").Double()
-        h_dpt_bump       = Hist.new.Reg(200, -60, 60, name = "dpt", label = "deltaPt").Double()
-        h_dpt_all        = Hist.new.Reg(200, -60, 60, name = "dpt", label = "deltaPt").Double()
-        h_dcharge_bump   = Hist.new.Reg(3, 0, 3, name = "dcharge", label = "deltaCharge").Double()
-        h_dcharge_all    = Hist.new.Reg(3, 0, 3, name = "dcharge", label = "deltaCharge").Double()
-        h_lxy_bump       = Hist.new.Reg(120, 0, 120, name = "lxy", label = "lxy").Double()
-        h_lxy_all        = Hist.new.Reg(120, 0, 120, name = "lxy", label = "lxy").Double()
-        h_pdgid_bump     = Hist.new.Reg(8, -400, 400, name = "pdgid", label = "pdgid").Double()
-        h_geneta_bump    = Hist.new.Reg(50, -2.5, 2.5, name = "geneta", label = "eta").Double()
+        H['h_deta_bump']      = Hist.new.Reg(100, -5, 5, name = "deta", label = "deltaEta (origin)").Double()
+        H['h_dphi_bump']      = Hist.new.Reg(100, 0, 3.5, name = "dphi", label = "deltaPhi (origin)").Double()
+        H['h_deta_ecal_bump'] = Hist.new.Reg(100, -5, 5, name = "deta_ecal", label = "deltaEta (ECAL)").Double()
+        H['h_dphi_ecal_bump'] = Hist.new.Reg(100, 0, 3.5, name = "dphi_ecal", label = "deltaPhi (ECAL)").Double()
+        H['h_dpt_bump']       = Hist.new.Reg(200, -60, 60, name = "dpt", label = "deltaPt").Double()
+        H['h_dpt_all']        = Hist.new.Reg(200, -60, 60, name = "dpt", label = "deltaPt").Double()
+        H['h_dcharge_bump']   = Hist.new.Reg(3, 0, 3, name = "dcharge", label = "deltaCharge").Double()
+        H['h_dcharge_all']    = Hist.new.Reg(3, 0, 3, name = "dcharge", label = "deltaCharge").Double()
+        H['h_lxy_bump']       = Hist.new.Reg(120, 0, 120, name = "lxy", label = "lxy").Double()
+        H['h_lxy_all']        = Hist.new.Reg(120, 0, 120, name = "lxy", label = "lxy").Double()
+        H['h_pdgid_bump']     = Hist.new.Reg(8, -400, 400, name = "pdgid", label = "pdgid").Double()
+        H['h_geneta_bump']    = Hist.new.Reg(50, -2.5, 2.5, name = "geneta", label = "eta").Double()
 
 
         ## plots for events where deltaR_ecal > deltaR
-        h_phi_ecal_vs_phi_worse = ( Hist.new
+        H['h_phi_ecal_vs_phi_worse'] = ( Hist.new
             .Reg(80,  -3.2, 3.2, name = "phi_at_ecal", label = "phi_at_ecal")
             .Reg(80,  -3.2, 3.2, name = "phi", label = "phi")
             .Double()
         )
-        h_genphi_ecal_vs_genphi_worse = ( Hist.new
+        H['h_genphi_ecal_vs_genphi_worse'] = ( Hist.new
             .Reg(80,  -3.2, 3.2, name = "genphi_at_ecal", label = "genphi_at_ecal")
             .Reg(80,  -3.2, 3.2, name = "genphi", label = "genphi")
             .Double()
         )
-        h_pt_vs_genpt_worse = ( Hist.new
+        H['h_pt_vs_genpt_worse'] = ( Hist.new
             .Reg(100,  0, 100, name = "genpt", label = "genpt")
             .Reg(100, 0, 100, name = "recopt", label = "recopt")
             .Double()
         )
-        h_dxy_vs_gendxy_worse = ( Hist.new
+        H['h_dxy_vs_gendxy_worse'] = ( Hist.new
             .Reg(100, 0, 2, name = "gendxy", label = "gendxy")
             .Reg(100, 0, 2, name = "recodxy", label = "recodxy")
             .Double()
         )
-        h_deta_worse      = Hist.new.Reg(100, -5, 5, name = "deta", label = "deltaEta (origin)").Double()
-        h_dphi_worse      = Hist.new.Reg(100, 0, 3.5, name = "dphi", label = "deltaPhi (origin)").Double()
-        h_deta_ecal_worse = Hist.new.Reg(100, -5, 5, name = "deta_ecal", label = "deltaEta (ECAL)").Double()
-        h_dphi_ecal_worse = Hist.new.Reg(100, 0, 3.5, name = "dphi_ecal", label = "deltaPhi (ECAL)").Double()
-        h_dpt_worse       = Hist.new.Reg(200, -60, 60, name = "dpt", label = "deltaPt").Double()
-        h_dcharge_worse   = Hist.new.Reg(3, 0, 3, name = "dcharge", label = "deltaCharge").Double()
-        h_lxy_worse       = Hist.new.Reg(120, 0, 120, name = "lxy", label = "lxy").Double()
+        H['h_deta_worse']      = Hist.new.Reg(100, -5, 5, name = "deta", label = "deltaEta (origin)").Double()
+        H['h_dphi_worse']      = Hist.new.Reg(100, 0, 3.5, name = "dphi", label = "deltaPhi (origin)").Double()
+        H['h_deta_ecal_worse'] = Hist.new.Reg(100, -5, 5, name = "deta_ecal", label = "deltaEta (ECAL)").Double()
+        H['h_dphi_ecal_worse'] = Hist.new.Reg(100, 0, 3.5, name = "dphi_ecal", label = "deltaPhi (ECAL)").Double()
+        H['h_dpt_worse']       = Hist.new.Reg(200, -60, 60, name = "dpt", label = "deltaPt").Double()
+        H['h_dcharge_worse']   = Hist.new.Reg(3, 0, 3, name = "dcharge", label = "deltaCharge").Double()
+        H['h_lxy_worse']       = Hist.new.Reg(120, 0, 120, name = "lxy", label = "lxy").Double()
 
 
         # Base return dictionary for early exits
         def get_return_dict(events_arr):
-            return {dataset: {
-                "entries": ak.num(events_arr, axis=0), "cutflow": cutflow,
-                "h_delta": h_delta, "h_deltaR": h_deltaR, "h_deltaR_ecal": h_deltaR_ecal,
-                "h_deltaR_ecal_zoomout": h_deltaR_ecal_zoomout, "h_num_dxy": h_num_dxy,
-                "h_num_ecal_dxy": h_num_ecal_dxy, "h_gen_lxy": h_gen_lxy, "h_den_dxy": h_den_dxy,
-                "h_pass_dxy": h_pass_dxy, "h_fail_dxy": h_fail_dxy,
-                "h_num_dxy_zoom": h_num_dxy_zoom, "h_num_ecal_dxy_zoom": h_num_ecal_dxy_zoom,
-                "h_den_dxy_zoom": h_den_dxy_zoom, "h_num_pt": h_num_pt, "h_num_ecal_pt": h_num_ecal_pt,
-                "h_den_pt": h_den_pt, "h_gen_pt": h_gen_pt, "h_gen_pt_zoom": h_gen_pt_zoom,
-                "h_reco_pt": h_reco_pt, "h_reco_pt_zoom": h_reco_pt_zoom,
-                "h_num_jet_gvt_pt": h_num_jet_gvt_pt, "h_num_jet_dxy": h_num_jet_dxy,
-                "h_num_jet_pion_pt": h_num_jet_pion_pt, 
-                "h_deltaR_vs_dxy": h_deltaR_vs_dxy, "h_eta_ecal_vs_dxy": h_eta_ecal_vs_dxy,
-                "h_eta_ecal_vs_pt": h_eta_ecal_vs_pt, "h_eta_ecal_vs_eta": h_eta_ecal_vs_eta,
-                "h_dxy_vs_lxy": h_dxy_vs_lxy, "h_fail_pt_vs_eta": h_fail_pt_vs_eta,
-                "h_deta_bump": h_deta_bump, "h_dphi_bump": h_dphi_bump,
-                "h_deta_ecal_bump": h_deta_ecal_bump, "h_dphi_ecal_bump": h_dphi_ecal_bump,
-                "h_dpt_bump": h_dpt_bump, "h_dpt_all": h_dpt_all, 
-                "h_dcharge_all": h_dcharge_all, "h_dcharge_bump": h_dcharge_bump, 
-                "h_lxy_all": h_lxy_all, "h_lxy_bump": h_lxy_bump, 
-                "h_eta_ecal_vs_lxy": h_eta_ecal_vs_lxy, "h_eta_ecal_vs_tau_eta": h_eta_ecal_vs_tau_eta,
-                "h_allgenpions_eta_ecal_vs_eta": h_allgenpions_eta_ecal_vs_eta,
-                "h_phi_ecal_vs_phi_bump": h_phi_ecal_vs_phi_bump,
-                "h_genphi_ecal_vs_genphi_bump": h_genphi_ecal_vs_genphi_bump,
-                "h_phi_ecal_vs_phi_worse": h_phi_ecal_vs_phi_worse,
-                "h_genphi_ecal_vs_genphi_worse": h_genphi_ecal_vs_genphi_worse,
-                "h_pdgid_bump": h_pdgid_bump, "h_geneta_bump": h_geneta_bump,
-                "h_deta_worse": h_deta_worse, "h_dphi_worse": h_dphi_worse,
-                "h_deta_ecal_worse": h_deta_ecal_worse, "h_dphi_ecal_worse": h_dphi_ecal_worse,
-                "h_dpt_worse": h_dpt_worse, "h_dcharge_worse": h_dcharge_worse, 
-                "h_lxy_worse": h_lxy_worse, 
-                "h_gen_tau_pt": h_gen_tau_pt,
-                "h_pt_vs_genpt_worse": h_pt_vs_genpt_worse,
-                "h_dxy_vs_gendxy_worse": h_dxy_vs_gendxy_worse,
-                "h_num_gvt_pt_for_alljet":h_num_gvt_pt_for_alljet,
-                "h_den_gvt_pt_for_alljet":h_den_gvt_pt_for_alljet,
-                "h_num_gvt_pt": h_num_gvt_pt,
-                "h_num_ecal_gvt_pt": h_num_ecal_gvt_pt,
-                "h_den_gvt_pt": h_den_gvt_pt,
-                
-            }}
+            return {dataset: {"entries": ak.num(events_arr, axis=0), "cutflow": cutflow, **H}}
 
         # select gen visible taus from the desired long-lived particle chain
         gen_vis_taus = self.get_gen_vis_taus(events)
@@ -367,7 +315,7 @@ class TauProcessor(processor.ProcessorABC):
         leading_all_gen_pion = self.get_leading_gen_pion(filter_events)
         flat_allgenpions_eta_ecal = ak.flatten(leading_all_gen_pion.eta_at_ecal_pion)
         flat_allgenpions_eta = ak.flatten(leading_all_gen_pion.eta)
-        h_allgenpions_eta_ecal_vs_eta.fill(gen_eta_at_ecal = flat_allgenpions_eta_ecal, gen_eta = ak.to_numpy(flat_allgenpions_eta))
+        H['h_allgenpions_eta_ecal_vs_eta'].fill(gen_eta_at_ecal = flat_allgenpions_eta_ecal, gen_eta = ak.to_numpy(flat_allgenpions_eta))
 
 
         ## RECO side:
@@ -396,8 +344,8 @@ class TauProcessor(processor.ProcessorABC):
         has_matched_jet = ak.fill_none(ak.any(dr_jets_taus < self.delta_r_matching_threshold_, axis=1), False)
         # Filter the taus using the mask and fill the histogram with their pt
         matched_gen_taus = first_gen_tau[has_matched_jet]
-        h_num_gvt_pt_for_alljet.fill(jet_pt = ak.to_numpy(ak.flatten(matched_gen_taus.pt, axis=None)))
-        h_den_gvt_pt_for_alljet.fill(gen_pt = ak.to_numpy(ak.flatten(first_gen_tau.pt, axis=None)))
+        H['h_num_gvt_pt_for_alljet'].fill(jet_pt = ak.to_numpy(ak.flatten(matched_gen_taus.pt, axis=None)))
+        H['h_den_gvt_pt_for_alljet'].fill(gen_pt = ak.to_numpy(ak.flatten(first_gen_tau.pt, axis=None)))
         ### end of efficiency with standard DR and no requirement on PF charged candidate in the jet
          
         
@@ -473,19 +421,6 @@ class TauProcessor(processor.ProcessorABC):
         ## try to get the matched pions
         matched_pf_to_pions = ak.flatten(leading_reco_pf).nearest(leading_gen_pion, threshold = self.delta_r_matching_threshold_)
         
-        ## try to replicate with custom deltaR (at ECAL surface)
-        # Compute deltaR matrix between each reco and gen candidate in an event
-#         dr_matrix = self.delta_r_ecal(
-#             ak.cartesian({"pf": ak.flatten(leading_reco_pf), "pion": leading_gen_pion}, nested=True).pf,
-#             ak.cartesian({"pf": ak.flatten(leading_reco_pf), "pion": leading_gen_pion}, nested=True).pion
-#         )        
-#         ## find the index of the gen_pion closest to each reco_pf
-#         ecal_nearest_idx = ak.argmin(dr_matrix, axis=2)  # per reco_pf        
-#         ## get the corresponding gen_pion
-#         ecal_matched_pf_to_pions = leading_gen_pion[ecal_nearest_idx]
-#         dr_min = ak.min(dr_matrix, axis=2)
-#         ecal_matched_pf_to_pions_masked = ak.mask(ecal_matched_pf_to_pions, dr_min < self.delta_r_matching_threshold_)
-
         # compute dR values
         flat_leading_reco_pf = ak.flatten(leading_reco_pf, axis=1)
         delta_r_origin = flat_leading_reco_pf[:, :, None].delta_r(leading_gen_pion[:, None, :])
@@ -530,26 +465,8 @@ class TauProcessor(processor.ProcessorABC):
         bump_mask = (delta_r_ecal > 3.0) & (delta_r_ecal < 4.0)
         worse_mask = (delta_r_ecal > delta_r_origin)
 
-
-        flat_delta_r = ak.flatten(ak.flatten(delta_r_origin))
-        flat_delta_r = ak.fill_none(flat_delta_r, 999)
-        flat_delta_r_ecal = ak.flatten(ak.flatten(delta_r_ecal))
-        flat_delta_r_ecal = ak.fill_none(flat_delta_r_ecal, 999)
-
-#         flat_gen_dxy = ak.flatten(leading_gen_pion.dxy)
-#         flat_matched_dxy = ak.flatten(matched_gen_pions.dxy)
-#         flat_ecal_matched_dxy = ak.flatten(ecal_matched_gen_pions.dxy)
-# 
-#         flat_gen_pt = ak.flatten(leading_gen_pion.pt)
-#         flat_gen_eta = ak.flatten(leading_gen_pion.eta)
-#         flat_gen_eta_ecal = ak.flatten(leading_gen_pion.eta_at_ecal_pion)
-#         flat_matched_pt = ak.flatten(matched_gen_pions.pt)
-#         flat_ecal_matched_pt = ak.flatten(ecal_matched_gen_pions.pt)
-# 
-#         flat_fail_gen_pt  = ak.flatten(leading_gen_pion[leading_gen_pion.eta_at_ecal_pion < -10].pt)
-#         flat_fail_gen_eta = ak.flatten(leading_gen_pion[leading_gen_pion.eta_at_ecal_pion < -10].eta)
-#         flat_fail_gen_dxy = ak.flatten(leading_gen_pion[leading_gen_pion.eta_at_ecal_pion < -10].dxy)
-#         flat_pass_gen_dxy = ak.flatten(leading_gen_pion[leading_gen_pion.eta_at_ecal_pion > -10].dxy)
+        flat_delta_r = ak.fill_none(ak.flatten(ak.flatten(delta_r_origin)), 999)
+        flat_delta_r_ecal = ak.fill_none(ak.flatten(ak.flatten(delta_r_ecal)), 999)
 
         flat_gen_dxy = ak.fill_none(ak.flatten(leading_gen_pion.dxy), -99)
         flat_matched_dxy = ak.fill_none(ak.flatten(matched_gen_pions.dxy), -99)
@@ -569,87 +486,87 @@ class TauProcessor(processor.ProcessorABC):
 
         
         # fill histograms
-        h_delta.fill(deltaR = ak.to_numpy(flat_delta_r), deltaR_ecal = ak.to_numpy(flat_delta_r_ecal))
-        h_deltaR.fill(deltaR = ak.to_numpy(flat_delta_r))
-        h_deltaR_ecal.fill(deltaR_ecal = ak.to_numpy(flat_delta_r_ecal))
-        h_deltaR_ecal_zoomout.fill(deltaR_ecal = ak.to_numpy(flat_delta_r_ecal))
+        H['h_delta'].fill(deltaR = ak.to_numpy(flat_delta_r), deltaR_ecal = ak.to_numpy(flat_delta_r_ecal))
+        H['h_deltaR'].fill(deltaR = ak.to_numpy(flat_delta_r))
+        H['h_deltaR_ecal'].fill(deltaR_ecal = ak.to_numpy(flat_delta_r_ecal))
+        H['h_deltaR_ecal_zoomout'].fill(deltaR_ecal = ak.to_numpy(flat_delta_r_ecal))
 
-        h_den_dxy.fill(dxy = ak.to_numpy(flat_gen_dxy))
-        h_num_dxy.fill(dxy = ak.to_numpy(flat_matched_dxy))
-        h_num_ecal_dxy.fill(dxy = ak.to_numpy(flat_ecal_matched_dxy))
+        H['h_den_dxy'].fill(dxy = ak.to_numpy(flat_gen_dxy))
+        H['h_num_dxy'].fill(dxy = ak.to_numpy(flat_matched_dxy))
+        H['h_num_ecal_dxy'].fill(dxy = ak.to_numpy(flat_ecal_matched_dxy))
 
-        h_pass_dxy.fill(dxy = ak.to_numpy(flat_pass_gen_dxy))
-        h_fail_dxy.fill(dxy = ak.to_numpy(flat_fail_gen_dxy))
+        H['h_pass_dxy'].fill(dxy = ak.to_numpy(flat_pass_gen_dxy))
+        H['h_fail_dxy'].fill(dxy = ak.to_numpy(flat_fail_gen_dxy))
 
-        h_den_dxy_zoom.fill(dxy = ak.to_numpy(flat_gen_dxy))
-        h_num_dxy_zoom.fill(dxy = ak.to_numpy(flat_matched_dxy))
-        h_num_ecal_dxy_zoom.fill(dxy = ak.to_numpy(flat_ecal_matched_dxy))
+        H['h_den_dxy_zoom'].fill(dxy = ak.to_numpy(flat_gen_dxy))
+        H['h_num_dxy_zoom'].fill(dxy = ak.to_numpy(flat_matched_dxy))
+        H['h_num_ecal_dxy_zoom'].fill(dxy = ak.to_numpy(flat_ecal_matched_dxy))
 
-        h_den_pt.fill(gen_pt = ak.to_numpy(flat_gen_pt))
-        h_num_pt.fill(reco_pt = ak.to_numpy(flat_matched_pt))
-        h_num_ecal_pt.fill(reco_ecal_pt = ak.to_numpy(flat_ecal_matched_pt))
+        H['h_den_pt'].fill(gen_pt = ak.to_numpy(flat_gen_pt))
+        H['h_num_pt'].fill(reco_pt = ak.to_numpy(flat_matched_pt))
+        H['h_num_ecal_pt'].fill(reco_ecal_pt = ak.to_numpy(flat_ecal_matched_pt))
         
-        h_num_gvt_pt.fill(reco_gvtpt = ak.to_numpy(ak.flatten(matched_gen_pions.parent_tau_pt)))
-        h_num_ecal_gvt_pt.fill(reco_ecal_gvtpt = ak.to_numpy(ak.flatten(ecal_matched_gen_pions.parent_tau_pt)))
-        h_den_gvt_pt.fill(gen_gvtpt = ak.to_numpy(ak.flatten(first_gen_tau.pt, axis=None)))
+        H['h_num_gvt_pt'].fill(reco_gvtpt = ak.to_numpy(ak.flatten(matched_gen_pions.parent_tau_pt)))
+        H['h_num_ecal_gvt_pt'].fill(reco_ecal_gvtpt = ak.to_numpy(ak.flatten(ecal_matched_gen_pions.parent_tau_pt)))
+        H['h_den_gvt_pt'].fill(gen_gvtpt = ak.to_numpy(ak.flatten(first_gen_tau.pt, axis=None)))
 
         ## plot all gen and reco pT (no matching) 
-        h_gen_pt.fill(gen_pt = ak.to_numpy(flat_gen_pt))
-        h_gen_pt_zoom.fill(gen_pt = ak.to_numpy(flat_gen_pt))
-        h_reco_pt.fill(reco_pt = ak.to_numpy(ak.flatten(ak.flatten(leading_reco_pf.pt))))
-        h_reco_pt_zoom.fill(reco_pt = ak.to_numpy(ak.flatten(ak.flatten(leading_reco_pf.pt))))
+        H['h_gen_pt'].fill(gen_pt = ak.to_numpy(flat_gen_pt))
+        H['h_gen_pt_zoom'].fill(gen_pt = ak.to_numpy(flat_gen_pt))
+        H['h_reco_pt'].fill(reco_pt = ak.to_numpy(ak.flatten(ak.flatten(leading_reco_pf.pt))))
+        H['h_reco_pt_zoom'].fill(reco_pt = ak.to_numpy(ak.flatten(ak.flatten(leading_reco_pf.pt))))
         
-        h_eta_ecal_vs_dxy.fill(eta_at_ecal = ak.to_numpy(flat_gen_eta_ecal), dxy = ak.to_numpy(flat_gen_dxy))
-        h_eta_ecal_vs_pt.fill (eta_at_ecal = ak.to_numpy(flat_gen_eta_ecal), gen_pt  = ak.to_numpy(flat_gen_pt))
-        h_eta_ecal_vs_eta.fill(eta_at_ecal = ak.to_numpy(flat_gen_eta_ecal), gen_eta = ak.to_numpy(flat_gen_eta))
-        h_fail_pt_vs_eta.fill (pt = ak.to_numpy(flat_fail_gen_pt), eta = ak.to_numpy(flat_fail_gen_eta))
+        H['h_eta_ecal_vs_dxy'].fill(eta_at_ecal = ak.to_numpy(flat_gen_eta_ecal), dxy = ak.to_numpy(flat_gen_dxy))
+        H['h_eta_ecal_vs_pt'].fill (eta_at_ecal = ak.to_numpy(flat_gen_eta_ecal), gen_pt  = ak.to_numpy(flat_gen_pt))
+        H['h_eta_ecal_vs_eta'].fill(eta_at_ecal = ak.to_numpy(flat_gen_eta_ecal), gen_eta = ak.to_numpy(flat_gen_eta))
+        H['h_fail_pt_vs_eta'].fill (pt = ak.to_numpy(flat_fail_gen_pt), eta = ak.to_numpy(flat_fail_gen_eta))
 
-        h_deta_bump.fill(deta = ak.to_numpy(ak.flatten(deta_origin[bump_mask], axis=None)))
-        h_dphi_bump.fill(dphi = ak.to_numpy(ak.flatten(dphi_origin[bump_mask], axis=None)))
-        h_deta_ecal_bump.fill(deta_ecal = ak.to_numpy(ak.flatten(deta_ecal[bump_mask], axis=None)))
-        h_dphi_ecal_bump.fill(dphi_ecal = ak.to_numpy(ak.flatten(dphi_ecal[bump_mask], axis=None)))
-        h_dpt_bump.fill(dpt = ak.to_numpy(ak.flatten(dpt[bump_mask], axis=None)))
-        h_dpt_all.fill(dpt = ak.to_numpy(ak.flatten(dpt, axis=None)))
-        h_dcharge_bump.fill(dcharge = ak.to_numpy(ak.flatten(dcharge[bump_mask], axis=None)))
-        h_dcharge_all.fill(dcharge = ak.to_numpy(ak.flatten(dcharge, axis=None)))
-        h_lxy_bump.fill(lxy = ak.to_numpy(ak.flatten(gen_lxy_broadcasted[bump_mask], axis=None)))
-        h_lxy_all.fill(lxy = ak.to_numpy(ak.flatten(gen_lxy_broadcasted, axis=None)))
+        H['h_deta_bump'].fill(deta = ak.to_numpy(ak.flatten(deta_origin[bump_mask], axis=None)))
+        H['h_dphi_bump'].fill(dphi = ak.to_numpy(ak.flatten(dphi_origin[bump_mask], axis=None)))
+        H['h_deta_ecal_bump'].fill(deta_ecal = ak.to_numpy(ak.flatten(deta_ecal[bump_mask], axis=None)))
+        H['h_dphi_ecal_bump'].fill(dphi_ecal = ak.to_numpy(ak.flatten(dphi_ecal[bump_mask], axis=None)))
+        H['h_dpt_bump'].fill(dpt = ak.to_numpy(ak.flatten(dpt[bump_mask], axis=None)))
+        H['h_dpt_all'].fill(dpt = ak.to_numpy(ak.flatten(dpt, axis=None)))
+        H['h_dcharge_bump'].fill(dcharge = ak.to_numpy(ak.flatten(dcharge[bump_mask], axis=None)))
+        H['h_dcharge_all'].fill(dcharge = ak.to_numpy(ak.flatten(dcharge, axis=None)))
+        H['h_lxy_bump'].fill(lxy = ak.to_numpy(ak.flatten(gen_lxy_broadcasted[bump_mask], axis=None)))
+        H['h_lxy_all'].fill(lxy = ak.to_numpy(ak.flatten(gen_lxy_broadcasted, axis=None)))
       
-        h_phi_ecal_vs_phi_bump.fill(
+        H['h_phi_ecal_vs_phi_bump'].fill(
             phi_at_ecal = ak.to_numpy(ak.flatten(phi_ecal_broadcasted[bump_mask], axis=None)), 
             phi         = ak.to_numpy(ak.flatten(phi_broadcasted[bump_mask], axis=None))
         )
         
-        h_genphi_ecal_vs_genphi_bump.fill(
+        H['h_genphi_ecal_vs_genphi_bump'].fill(
             genphi_at_ecal = ak.to_numpy(ak.flatten(gen_phi_ecal_broadcasted[bump_mask], axis=None)), 
             genphi         = ak.to_numpy(ak.flatten(gen_phi_broadcasted[bump_mask], axis=None))
         )
-        h_pdgid_bump.fill(pdgid = ak.to_numpy(ak.flatten(gen_pdgid_broadcasted[bump_mask], axis=None))) 
-        h_geneta_bump.fill(geneta = ak.to_numpy(ak.flatten(gen_eta_broadcasted[bump_mask], axis=None))) 
+        H['h_pdgid_bump'].fill(pdgid = ak.to_numpy(ak.flatten(gen_pdgid_broadcasted[bump_mask], axis=None))) 
+        H['h_geneta_bump'].fill(geneta = ak.to_numpy(ak.flatten(gen_eta_broadcasted[bump_mask], axis=None))) 
 
 
         ## understand why some events have worse deltaR ecal than deltaR
-        h_phi_ecal_vs_phi_worse.fill(
+        H['h_phi_ecal_vs_phi_worse'].fill(
             phi_at_ecal = ak.to_numpy(ak.flatten(phi_ecal_broadcasted[worse_mask], axis=None)), 
             phi         = ak.to_numpy(ak.flatten(phi_broadcasted[worse_mask], axis=None))
         )
         
-        h_genphi_ecal_vs_genphi_worse.fill(
+        H['h_genphi_ecal_vs_genphi_worse'].fill(
             genphi_at_ecal = ak.to_numpy(ak.flatten(gen_phi_ecal_broadcasted[worse_mask], axis=None)), 
             genphi         = ak.to_numpy(ak.flatten(gen_phi_broadcasted[worse_mask], axis=None))
         )
-        h_dpt_worse.fill(dpt = ak.to_numpy(ak.flatten(dpt[worse_mask], axis=None)))
-        h_deta_worse.fill(deta = ak.to_numpy(ak.flatten(deta_origin[worse_mask], axis=None)))
-        h_dphi_worse.fill(dphi = ak.to_numpy(ak.flatten(dphi_origin[worse_mask], axis=None)))
-        h_deta_ecal_worse.fill(deta_ecal = ak.to_numpy(ak.flatten(deta_ecal[worse_mask], axis=None)))
-        h_dphi_ecal_worse.fill(dphi_ecal = ak.to_numpy(ak.flatten(dphi_ecal[worse_mask], axis=None)))
-        h_dcharge_worse.fill(dcharge = ak.to_numpy(ak.flatten(dcharge[worse_mask], axis=None)))
-        h_lxy_worse.fill(lxy = ak.to_numpy(ak.flatten(gen_lxy_broadcasted[worse_mask], axis=None)))
-        h_pt_vs_genpt_worse.fill(
+        H['h_dpt_worse'].fill(dpt = ak.to_numpy(ak.flatten(dpt[worse_mask], axis=None)))
+        H['h_deta_worse'].fill(deta = ak.to_numpy(ak.flatten(deta_origin[worse_mask], axis=None)))
+        H['h_dphi_worse'].fill(dphi = ak.to_numpy(ak.flatten(dphi_origin[worse_mask], axis=None)))
+        H['h_deta_ecal_worse'].fill(deta_ecal = ak.to_numpy(ak.flatten(deta_ecal[worse_mask], axis=None)))
+        H['h_dphi_ecal_worse'].fill(dphi_ecal = ak.to_numpy(ak.flatten(dphi_ecal[worse_mask], axis=None)))
+        H['h_dcharge_worse'].fill(dcharge = ak.to_numpy(ak.flatten(dcharge[worse_mask], axis=None)))
+        H['h_lxy_worse'].fill(lxy = ak.to_numpy(ak.flatten(gen_lxy_broadcasted[worse_mask], axis=None)))
+        H['h_pt_vs_genpt_worse'].fill(
             genpt = ak.to_numpy(ak.flatten(gen_pt_broadcasted[worse_mask], axis=None)), 
             recopt         = ak.to_numpy(ak.flatten(pt_broadcasted[worse_mask], axis=None))
         )
-        h_dxy_vs_gendxy_worse.fill(
+        H['h_dxy_vs_gendxy_worse'].fill(
             gendxy = ak.to_numpy(ak.flatten(gen_dxy_broadcasted[worse_mask], axis=None)), 
             recodxy         = ak.to_numpy(ak.flatten(dxy_broadcasted[worse_mask], axis=None))
         )
@@ -657,12 +574,12 @@ class TauProcessor(processor.ProcessorABC):
       
         ## plot GEN lxy 
         flat_lxy = ak.flatten(gen_vis_taus.pion_lxy)
-        h_gen_lxy.fill(gen_lxy = ak.to_numpy(flat_lxy))
-        h_gen_tau_pt.fill(gen_tau_pt = ak.to_numpy(ak.flatten(gen_vis_taus.pt)))
+        H['h_gen_lxy'].fill(gen_lxy = ak.to_numpy(flat_lxy))
+        H['h_gen_tau_pt'].fill(gen_tau_pt = ak.to_numpy(ak.flatten(gen_vis_taus.pt)))
         
-        h_eta_ecal_vs_lxy    .fill(eta_at_ecal = flat_gen_eta_ecal, gen_lxy = ak.to_numpy(flat_lxy))
-        h_eta_ecal_vs_tau_eta.fill(eta_at_ecal = flat_gen_eta_ecal, gen_tau_eta = ak.to_numpy(ak.flatten(gen_vis_taus.eta)))
-        h_dxy_vs_lxy.fill(dxy = ak.to_numpy(flat_gen_dxy), gen_lxy = ak.to_numpy(flat_lxy))
+        H['h_eta_ecal_vs_lxy'].fill(eta_at_ecal = flat_gen_eta_ecal, gen_lxy = ak.to_numpy(flat_lxy))
+        H['h_eta_ecal_vs_tau_eta'].fill(eta_at_ecal = flat_gen_eta_ecal, gen_tau_eta = ak.to_numpy(ak.flatten(gen_vis_taus.eta)))
+        H['h_dxy_vs_lxy'].fill(dxy = ak.to_numpy(flat_gen_dxy), gen_lxy = ak.to_numpy(flat_lxy))
 
         # match jets to GenVisTaus 
         ##  using firsts is safe only because running on mu-tau events
@@ -675,15 +592,15 @@ class TauProcessor(processor.ProcessorABC):
         ## before it was jets.delta_r()
         dr_jets_taus = valid_leading_jet.delta_r(first_gen_tau)
 #         matched_jets = jets[ak.fill_none(dr_jets_taus < 0.4, False)]
-#         h_num_jet_gvt_pt.fill(jet_pt = ak.to_numpy(ak.flatten(matched_jets.pt, axis=None)))
+#         H['h_num_jet_gvt_pt.fill(jet_pt = ak.to_numpy(ak.flatten(matched_jets.pt, axis=None)))
 
         # Find if the gen vis tau has a match
         has_matched_jet = ak.fill_none(ak.any(dr_jets_taus < self.delta_r_matching_threshold_, axis=1), False)
         # Filter the taus using the mask and fill the histogram with their pt
         matched_gen_taus = first_gen_tau[has_matched_jet]
-        h_num_jet_gvt_pt.fill(jet_pt = ak.to_numpy(ak.flatten(matched_gen_taus.pt, axis=None)))
-        h_num_jet_pion_pt.fill(jet_pion_pt = ak.to_numpy(ak.flatten(matched_gen_taus.pion_pt, axis=None)))
-        h_num_jet_dxy.fill(jet_dxy = ak.to_numpy(ak.flatten(matched_gen_taus.pion_dxy, axis=None)))        
+        H['h_num_jet_gvt_pt'].fill(jet_pt = ak.to_numpy(ak.flatten(matched_gen_taus.pt, axis=None)))
+        H['h_num_jet_pion_pt'].fill(jet_pion_pt = ak.to_numpy(ak.flatten(matched_gen_taus.pion_pt, axis=None)))
+        H['h_num_jet_dxy'].fill(jet_dxy = ak.to_numpy(ak.flatten(matched_gen_taus.pion_dxy, axis=None)))        
 
         ## otherwise
 #         # This compares EVERY jet to EVERY tau in the event
@@ -700,15 +617,9 @@ class TauProcessor(processor.ProcessorABC):
         return accumulator
 
 
-
-
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import pdb
-from coffea.util import save
-import itertools
-
 if __name__ == "__main__":
+    import itertools
+    from coffea.util import save
 
     iterative_run = processor.Runner(
 #         executor = processor.IterativeExecutor(compression=None),
@@ -718,94 +629,7 @@ if __name__ == "__main__":
     )
 
     stau_fileset = {
-#       "Stau_300_100mm": {
-#         "files": {
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_0_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_10_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_11_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_12_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_13_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_14_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_15_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_16_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_17_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_18_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_19_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_1_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_20_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_21_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_22_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_23_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_24_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_25_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_26_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_27_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_28_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_29_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_2_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_30_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_31_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_32_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_33_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_34_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_35_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_36_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_37_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_38_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_39_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_3_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_40_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_4_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_5_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_6_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_7_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_8_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-100mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_9_0.root" : "Events",
-#          }
-#       },
-      ## adding requirement on vertex in tracker
-#       "Stau_300_1000mm": {
-#         "files": {
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_0_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_10_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_11_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_12_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_13_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_14_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_15_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_16_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_17_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_18_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_19_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_1_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_20_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_21_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_22_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_23_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_24_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_25_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_26_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_27_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_28_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_29_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_2_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_30_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_31_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_32_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_33_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_34_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_35_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_36_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_38_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_3_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_4_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_5_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_6_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_7_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_8_0.root" : "Events",
-#           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/Run3_Summer22_chs_AK4PFCands_v13/SMS-TStauStau_MStau-300_ctau-1000mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_9_0.root" : "Events",
-#          }
-#       },
+## to be updated
 #       "Stau_300_1mm": {
 #         "files": {
 #           "root://cmsxrootd.fnal.gov//store/group/lpcdisptau/displacedTaus/nanoprod/summary/Run3_Summer22_chs_AK4PFCands_v12/SMS-TStauStau_MStau-300_ctau-1mm_mLSP-1_TuneCP5_13p6TeV_madgraphMLM-pythia8/nano_0.root" : "Events",
@@ -884,7 +708,6 @@ if __name__ == "__main__":
         )
     
         for sample_name in  [
-    #                          'Stau_300_100mm',
     #                          'Stau_300_1mm',
                              'Stau_300_100mm',
     #                          'Stau_300_1000mm',
@@ -898,72 +721,8 @@ if __name__ == "__main__":
             for cut, count in out[sample_name]['cutflow'].items():
                 print(f"{cut}: {count}")
     
-            output = {
-            "h_allgenpions_eta_ecal_vs_eta": out[sample_name]['h_allgenpions_eta_ecal_vs_eta'],
-            "h_den_dxy": out[sample_name]['h_den_dxy'],
-            "h_pass_dxy": out[sample_name]['h_pass_dxy'],
-            "h_fail_dxy": out[sample_name]['h_fail_dxy'],
-            "h_num_dxy": out[sample_name]['h_num_dxy'],
-            "h_num_ecal_dxy": out[sample_name]['h_num_ecal_dxy'],
-            "h_den_dxy_zoom": out[sample_name]['h_den_dxy_zoom'],
-            "h_num_dxy_zoom": out[sample_name]['h_num_dxy_zoom'],
-            "h_num_ecal_dxy_zoom": out[sample_name]['h_num_ecal_dxy_zoom'],
-            "h_gen_lxy": out[sample_name]['h_gen_lxy'],
-#             "h_reco_lxy": out[sample_name]['h_reco_lxy'],
-#             "h_reco_ecal_lxy": out[sample_name]['h_reco_ecal_lxy'],
-            "h_den_pt": out[sample_name]['h_den_pt'],
-            "h_num_pt": out[sample_name]['h_num_pt'],
-            "h_num_ecal_pt": out[sample_name]['h_num_ecal_pt'],
-            "h_delta": out[sample_name]['h_delta'],
-            "h_deltaR": out[sample_name]['h_deltaR'],
-            "h_deltaR_ecal": out[sample_name]['h_deltaR_ecal'],
-            "h_deltaR_ecal_zoomout": out[sample_name]['h_deltaR_ecal_zoomout'],
-            "h_eta_ecal_vs_dxy": out[sample_name]['h_eta_ecal_vs_dxy'],
-            "h_eta_ecal_vs_pt": out[sample_name]['h_eta_ecal_vs_pt'],
-            "h_eta_ecal_vs_eta": out[sample_name]['h_eta_ecal_vs_eta'],
-            "h_eta_ecal_vs_lxy": out[sample_name]['h_eta_ecal_vs_lxy'],
-            "h_eta_ecal_vs_tau_eta": out[sample_name]['h_eta_ecal_vs_tau_eta'],
-            "h_dxy_vs_lxy": out[sample_name]['h_dxy_vs_lxy'],
-            "h_fail_pt_vs_eta": out[sample_name]['h_fail_pt_vs_eta'],
-            "h_gen_pt": out[sample_name]['h_gen_pt'],
-            "h_gen_pt_zoom": out[sample_name]['h_gen_pt_zoom'],
-            "h_reco_pt": out[sample_name]['h_reco_pt'],
-            "h_reco_pt_zoom": out[sample_name]['h_reco_pt_zoom'],
-            "h_num_jet_gvt_pt": out[sample_name]['h_num_jet_gvt_pt'],
-            "h_num_jet_pion_pt": out[sample_name]['h_num_jet_pion_pt'],
-            "h_num_jet_dxy": out[sample_name]['h_num_jet_dxy'],
-            "h_deta_bump": out[sample_name]['h_deta_bump'],
-            "h_dphi_bump": out[sample_name]['h_dphi_bump'],
-            "h_deta_ecal_bump": out[sample_name]['h_deta_ecal_bump'],
-            "h_dphi_ecal_bump": out[sample_name]['h_dphi_ecal_bump'],
-            "h_dpt_bump": out[sample_name]['h_dpt_bump'],
-            "h_dpt_all": out[sample_name]['h_dpt_all'],
-            "h_dcharge_bump": out[sample_name]['h_dcharge_bump'],
-            "h_dcharge_all": out[sample_name]['h_dcharge_all'],
-            "h_lxy_all": out[sample_name]['h_lxy_all'],
-            "h_lxy_bump": out[sample_name]['h_lxy_bump'], 
-            "h_phi_ecal_vs_phi_bump": out[sample_name]['h_phi_ecal_vs_phi_bump'], 
-            "h_genphi_ecal_vs_genphi_bump": out[sample_name]['h_genphi_ecal_vs_genphi_bump'], 
-            "h_pdgid_bump": out[sample_name]['h_pdgid_bump'], 
-            "h_geneta_bump": out[sample_name]['h_geneta_bump'], 
-            "h_gen_tau_pt": out[sample_name]['h_gen_tau_pt'], 
-            "h_phi_ecal_vs_phi_worse": out[sample_name]['h_phi_ecal_vs_phi_worse'], 
-            "h_genphi_ecal_vs_genphi_worse": out[sample_name]['h_genphi_ecal_vs_genphi_worse'], 
-            "h_deta_worse": out[sample_name]['h_deta_worse'],
-            "h_dphi_worse": out[sample_name]['h_dphi_worse'],
-            "h_deta_ecal_worse": out[sample_name]['h_deta_ecal_worse'],
-            "h_dphi_ecal_worse": out[sample_name]['h_dphi_ecal_worse'],
-            "h_dpt_worse": out[sample_name]['h_dpt_worse'],
-            "h_dcharge_worse": out[sample_name]['h_dcharge_worse'],
-            "h_lxy_worse": out[sample_name]['h_lxy_worse'], 
-            "h_pt_vs_genpt_worse": out[sample_name]['h_pt_vs_genpt_worse'], 
-            "h_dxy_vs_gendxy_worse": out[sample_name]['h_dxy_vs_gendxy_worse'], 
-            "h_num_gvt_pt_for_alljet": out[sample_name]['h_num_gvt_pt_for_alljet'], 
-            "h_den_gvt_pt_for_alljet": out[sample_name]['h_den_gvt_pt_for_alljet'], 
-            "h_num_gvt_pt": out[sample_name]['h_num_gvt_pt'], 
-            "h_num_ecal_gvt_pt": out[sample_name]['h_num_ecal_gvt_pt'], 
-            "h_den_gvt_pt": out[sample_name]['h_den_gvt_pt'], 
-        }
+            output = {k: v for k, v in out[sample_name].items() if k.startswith("h_")}
+
             delta_r_matching_threshold_string = str(delta_r_matching_threshold).replace('.','p')
             out_filename = f"inputs_study_propagation/histograms_{sample_name}_dR{delta_r_matching_threshold_string}_MaxLxy{max_lxy}_decayM{decay_mode}_pfPt{min_reco_pion_pt}_genPionPt0_genTauPt{min_gen_tau_pt}_noTaggerScore_goodRecoProp.coffea"
             save(output, out_filename)
