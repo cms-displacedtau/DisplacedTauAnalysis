@@ -88,7 +88,7 @@ parser.add_argument(
         help="Run a test job locally")
 args = parser.parse_args()
 
-out_folder = f'root://cmseos.fnal.gov//store/user/dally/skim/{args.nanov}/{args.skim}/{args.skimversion}/material_veto/'
+out_folder = f'root://cmseos.fnal.gov//store/user/bskipwor/skim/{args.nanov}/{args.skim}/{args.skimversion}/material_veto/'
 
 
 ## define input samples
@@ -314,7 +314,7 @@ if __name__ == "__main__":
                     },
                 job_script_prologue=[
                     "export XRD_RUNFORKHANDLER=1",  ### enables fork-safety in the XRootD client, to avoid deadlock when accessing EOS files
-                    f"export X509_USER_PROXY=$HOME/x509up_u57864",
+                    f"export X509_USER_PROXY=$HOME/x509up_u57757",
                     "export PYTHONPATH=$PYTHONPATH:$_CONDOR_SCRATCH_DIR:$HOME",
                 ],
                 #worker_extra_args = ['--worker-port 10000:10100']

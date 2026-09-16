@@ -238,7 +238,7 @@ class MyProcessor(processor.ProcessorABC):
         out_dict = dak.zip(out_dict, depth_limit = 1)
 
         logger.info(f"Dictionary zipped: {events.metadata['dataset']}: {out_dict}")
-        out_file = uproot.dask_write(out_dict, "root://cmseos.fnal.gov//store/user/dally/first_skim/noLepVeto"+events.metadata['dataset'], compute=False, tree_name='Events')
+        out_file = uproot.dask_write(out_dict, "root://cmseos.fnal.gov//store/user/bskipwor/first_skim/noLepVeto"+events.metadata['dataset'], compute=False, tree_name='Events')
         return out_file
 
     def postprocess(self, accumulator):
@@ -254,7 +254,7 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     
     tic = time.time()
-    cluster = LPCCondorCluster(ship_env=True, transfer_input_files='/uscms/home/dally/x509up_u57864')
+    cluster = LPCCondorCluster(ship_env=True, transfer_input_files='/uscms/home/bskipwor/x509up_u57757')
     # minimum > 0: https://github.com/CoffeaTeam/coffea/issues/465
     cluster.adapt(minimum=1, maximum=10000)
     client = Client(cluster)
@@ -286,7 +286,7 @@ if __name__ == "__main__":
 #    )
 
     for samp in dataset_runnable.keys(): 
-        if  samp not in os.listdir("/eos/uscms/store/user/dally/first_skim/noLepVeto"):
+        if  samp not in os.listdir("/eos/uscms/store/user/bskipwor/first_skim/noLepVeto"):
             if "Stau" in samp or "QCD" in samp or "TT" in samp or "DY" in samp: continue
             samp_runnable = {}
             samp_runnable[samp] = dataset_runnable[samp]
@@ -300,7 +300,7 @@ if __name__ == "__main__":
             )
             #failed_chunks = get_failed_steps_for_fileset(
             print(to_compute)
-            #outfile = uproot.dask_write(to_compute[0][samp], "root://cmseos.fnal.gov//store/user/dally/first_skim_muon_root_test/"+samp, compute=False, tree_name='Events')
+            #outfile = uproot.dask_write(to_compute[0][samp], "root://cmseos.fnal.gov//store/user/bskipwor/first_skim_muon_root_test/"+samp, compute=False, tree_name='Events')
             dask.compute(to_compute)
     
             elapsed = time.time() - tic

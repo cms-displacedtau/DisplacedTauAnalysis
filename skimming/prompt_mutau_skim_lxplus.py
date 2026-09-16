@@ -64,7 +64,7 @@ parser.add_argument(
         help="Run a test job locally")
 args = parser.parse_args()
 
-out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/dally/displacedTaus/skim/{args.nanov}/prompt_mutau/v8/'
+out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/bskipwor/displacedTaus/skim/{args.nanov}/prompt_mutau/v8/'
 out_folder_json = out_folder.replace('root://cmseos.fnal.gov/','/eos/uscms')
 custom_nano_v = args.nanov + '/'
 custom_nano_v_p = args.nanov + '.'
@@ -465,7 +465,7 @@ if __name__ == "__main__":
                 #    },
 #                job_script_prologue=[
                 #    "export XRD_RUNFORKHANDLER=1",  ### enables fork-safety in the XRootD client, to avoid deadlock when accessing EOS files
-#                    f"export X509_USER_PROXY=$HOME/x509up_u57864",
+#                    f"export X509_USER_PROXY=$HOME/x509up_u57757",
 #                    "export PYTHONPATH=$PYTHONPATH:$_CONDOR_SCRATCH_DIR:$HOME",
 #                ],
                 #worker_extra_args = ['--worker-port 10000:10100']

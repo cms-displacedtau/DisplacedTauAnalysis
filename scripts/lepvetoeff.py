@@ -260,7 +260,7 @@ class IDProcessor(processor.ProcessorABC):
         return accumulator
 
 if __name__ == "__main__": 
-    cluster = LPCCondorCluster(ship_env=True, transfer_input_files='/uscms/home/dally/x509up_u57864')
+    cluster = LPCCondorCluster(ship_env=True, transfer_input_files='/uscms/home/bskipwor/x509up_u57757')
     cluster.adapt(minimum=1, maximum=10000)
     client = Client(cluster)
     

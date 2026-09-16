@@ -764,7 +764,7 @@ if __name__ == "__main__":
                     },
                 job_script_prologue=[
                     "export XRD_RUNFORKHANDLER=1",  ### enables fork-safety in the XRootD client, to avoid deadlock when accessing EOS files
-                    f"export X509_USER_PROXY=$HOME/x509up_u57864",
+                    f"export X509_USER_PROXY=$HOME/x509up_u57757",
                     "export PYTHONPATH=$PYTHONPATH:$_CONDOR_SCRATCH_DIR:$HOME",
                 ],
                 )
