@@ -27,6 +27,11 @@ SR = {
               "MET_pt":                     105., ##GeV
              }
 
+## SR with the jet score cut removed, to plot the full disTauTag_score1 distribution
+SR_fullScore = {j:k for j,k in SR.items()}
+SR_fullScore["jet_score_min"] =  -999
+SR_fullScore["jet_score_max"] =  999
+
 ## defined but never used
 loose_SR = {j:k for j,k in SR.items()}
 loose_SR["muon_dxy_min"] =  50E-4 ##cm
@@ -188,6 +193,7 @@ HPSTauMu = {
 
 selections_dict = {
   'SR' : SR,
+  'SR_fullScore' : SR_fullScore,
   'loose_SR_selections' : loose_SR,
   'loose_noIso_SR_selections' : loose_noIso_SR,
   'validation_prompt' : validation_prompt,

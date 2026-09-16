@@ -24,7 +24,8 @@ hep.style.use("CMS")
 
 nanov = 'Summer22_CHS_v19/'
 # nanov = ''
-sample_folder = f"/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/SR/faster_trial/"
+#sample_folder = f"/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/SR/faster_trial/"
+sample_folder = f"/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/SR_fullScore/faster_trial/"
 normalize = False
 
 #if "PR" in sample_folder:
