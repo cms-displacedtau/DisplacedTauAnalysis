@@ -80,6 +80,11 @@ all_samples_dict = {
     "WtoLNu" : [
          "WtoLNu-4Jets",
       ],
+    "EWK" : [
+        "WW",
+        "WZ",
+        "ZZ",
+      ],
     "Stau_500" : [
 #        "Stau_500_0p01mm",
 #        "Stau_500_0p1mm",
@@ -356,6 +361,33 @@ for process in available_processes:
 # Plotting part
 groupProcesses = True
 
+## Background colours by process name, matching Daniel's makePlotsFromNtuples.py line 456
+## (Petroff / CMS accessible palette). His list is positional and includes VBF at slot 7;
+## the reference plot I compare to predates VBF, so EWK is pink there.
+EWK_COLOUR = "#FF99C9"   ## pink, matches Daniel reference plot. His newer code uses "#C8E9A0".
+PROCESS_COLOURS = {
+    "Wto2Q":   "#5790fc",
+    "WtoLNu":  "#f89c20",
+    "singleT": "#e42536",
+    "TT":      "#964a8b",
+    "DY":      "#9c9ca1",
+    "QCD":     "#7a21dd",
+    "VBF":     "#FF99C9",
+    "EWK":     EWK_COLOUR,
+}
+
+filedir = "SR_fullScore_plots"
+os.makedirs(f"plots/{filedir}", exist_ok=True)
+
+def save_plot(fig, ax, filename):
+    print(filename + ".pdf")
+    for ext in ["pdf", "png", "eps"]:
+        fig.savefig(f"{filename}.{ext}")
+    ax.set_yscale('log')
+    for ext in ["pdf", "png", "eps"]:
+        fig.savefig(f"{filename}_log.{ext}")
+    plt.close(fig)
+
 for plot_name, histograms in histogram_dict.items():
     print('INFO: Now making plot for', plot_name, '...')
     binning = np.linspace(*plot_settings[plot_name].get("binning_linspace"))
@@ -375,6 +407,7 @@ for plot_name, histograms in histogram_dict.items():
         hist_Top   = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True), storage=hist.storage.Weight())
         hist_WJets   = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True), storage=hist.storage.Weight())
         hist_QCD       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True), storage=hist.storage.Weight())
+        hist_EWK       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True), storage=hist.storage.Weight())
         hist_QCD_300to470       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True), storage=hist.storage.Weight())
         hist_QCD_470to600       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True), storage=hist.storage.Weight())
         hist_QCD_600to800       = Hist(hist.axis.Regular(plot_settings[plot_name]["binning_linspace"][-1] - 1, plot_settings[plot_name]["binning_linspace"][0], plot_settings[plot_name]["binning_linspace"][1], name = plot_name, underflow = True, overflow = True), storage=hist.storage.Weight())
@@ -429,6 +462,8 @@ for plot_name, histograms in histogram_dict.items():
                 hist_WJets += histogram
             elif process in all_samples_dict['QCD']:
                 hist_QCD += histogram
+            elif process in all_samples_dict['EWK']:
+                hist_EWK += histogram
             #elif process in all_samples_dict['QCD_PT-300to470']:
             #    hist_QCD_300to470 += histogram
             #elif process in all_samples_dict['QCD_PT-470to600']:
@@ -467,7 +502,8 @@ for plot_name, histograms in histogram_dict.items():
     sum_hist_TT      = np.sum(hist_TT.values(flow=True))
     sum_hist_singleT = np.sum(hist_singleT.values(flow=True))
     sum_hist_QCD     = np.sum(hist_QCD.values(flow=True))
-    sum_hist_bg    = np.sum([sum_hist_Wto2Q, sum_hist_WtoLNu, sum_hist_DY, sum_hist_TT, sum_hist_singleT, sum_hist_QCD])
+    sum_hist_EWK     = np.sum(hist_EWK.values(flow=True))
+    sum_hist_bg    = np.sum([sum_hist_Wto2Q, sum_hist_WtoLNu, sum_hist_DY, sum_hist_TT, sum_hist_singleT, sum_hist_QCD, sum_hist_EWK])
     sum_hist_QCD_300to470   = np.sum(hist_QCD_300to470.values(flow=True))  
     sum_hist_QCD_470to600   = np.sum(hist_QCD_470to600.values(flow=True))
     sum_hist_QCD_600to800   = np.sum(hist_QCD_600to800.values(flow=True))  
@@ -503,6 +539,8 @@ for plot_name, histograms in histogram_dict.items():
             labels.append(f'DY: %.2f' %sum_hist_DY)
             hists_to_plot.append(hist_QCD)
             labels.append(f'QCD: %.2f' %sum_hist_QCD)
+            hists_to_plot.append(hist_EWK)
+            labels.append(f'EWK: %.2f' %sum_hist_EWK)
             #hists_to_plot.append(hist_QCD_300to470)
             #labels.append(f'300to470: %.2f' %sum_hist_QCD_300to470)
             #hists_to_plot.append(hist_QCD_470to600)
@@ -556,15 +594,27 @@ for plot_name, histograms in histogram_dict.items():
     #plt.savefig(filename.replace('.pdf', '_log.png'))
     #plt.savefig(filename.replace('.pdf', '_log.eps'))
     #plt.clf()
+    ## ---- background only: one plot per variable ----
+    fig, ax_main = plt.subplots(1, 1)
+    hep.histplot(hists_to_plot, histtype='fill',
+                 stack=do_stack,
+                 flow='sum',
+                 label=labels,
+                 color=[PROCESS_COLOURS.get(l.split(":")[0].strip(), "#000000") for l in labels],
+                 density=plot_settings[plot_name].get("density"), ax=ax_main)
+    ax_main.set_ylabel(plot_settings[plot_name].get("ylabel"))
+    ax_main.set_xlabel(plot_settings[plot_name].get("xlabel"), usetex=False)
+    ax_main.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={"size": 16})
+    ax_main.xaxis.set_major_locator(MultipleLocator(plot_settings[plot_name].get("x_major_ticks")))
+    ax_main.xaxis.set_minor_locator(MultipleLocator(plot_settings[plot_name].get("x_minor_ticks")))
+    hep.cms.label(f'Total Integral: %.2f Private Work'%sum_hist_bg, data=True, loc=0, label="Private Work", com=13.6, lumi=round(target_lumi, 1), ax=ax_main, fontsize="x-small")
+    plt.subplots_adjust(right=0.75)
+    save_plot(fig, ax_main, f"./plots/{filedir}/{dataset_name}_{plot_name}_background")
+
+    ## ---- signal only: one plot per mass, all lifetimes ----
     for mass in signal_mass:
         colour = 0
-        fig, ax_main = plt.subplots(1, 1, sharex=True)
-        fig.subplots_adjust(hspace=1.0)
-        hep.histplot(hists_to_plot,  histtype='fill', 
-                 stack=do_stack,
-                 flow = 'sum',
-                 label=labels, #color=colours, #sort='label_r', 
-                 density=plot_settings[plot_name].get("density"), ax=ax_main)
+        fig, ax_main = plt.subplots(1, 1)
         for lifetime in signal_lifetime:
             if normalize == True:
                 hep.histplot(signal_hists[mass][lifetime]/np.sum(signal_hists[mass][lifetime], axis = 0),  histtype='step', flow = 'sum', label=f'Stau_{mass}_{lifetime}', color=colours[colour], ax=ax_main)
@@ -573,36 +623,9 @@ for plot_name, histograms in histogram_dict.items():
             colour += 1
         ax_main.set_ylabel(plot_settings[plot_name].get("ylabel"))
         ax_main.set_xlabel(plot_settings[plot_name].get("xlabel"), usetex=False)
-        ax_main.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop = {"size":16})
-        
+        ax_main.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={"size": 16})
         ax_main.xaxis.set_major_locator(MultipleLocator(plot_settings[plot_name].get("x_major_ticks")))
         ax_main.xaxis.set_minor_locator(MultipleLocator(plot_settings[plot_name].get("x_minor_ticks")))
-        
-        ## Decorating with CMS label
-        hep.cms.label(r'  $m_{\tilde{\tau}}$' + f"= {mass} GeV Private Work", data=True, loc=0, com=13.6, lumi=round(target_lumi, 1), ax=ax_main, fontsize = "x-small")
-        #hep.cms.add_text(r'$|\eta|$ > 1.2', loc = 'upper left')
-        
-        # Saving with special name
-        #filename = f"/eos/uscms/store/user/dally/DisplacedTauAnalysis/plots/{dataset_name}_{plot_name}"
+        hep.cms.label(r'  $m_{\tilde{\tau}}$' + f"= {mass} GeV Private Work", data=True, loc=0, com=13.6, lumi=round(target_lumi, 1), ax=ax_main, fontsize="x-small")
         plt.subplots_adjust(right=0.75)
-        filedir = "SR_signal_plots"
-        if filedir not in os.listdir('plots/'):
-            os.mkdir(f'plots/{filedir}')
-        filename = f"./plots/{filedir}/{dataset_name}_{plot_name}_{mass}"
-        # #if args.groupProcesses:
-        #if plot_settings[plot_name].get("density"):
-        #    filename += "_normalized"
-        #else: 
-        #    filename += "_stacked"
-        #filename += "_etaleq1p2.pdf"
-        #filename += "_etag1p2.pdf"
-        filename += ".pdf"
-        print(filename)
-        plt.savefig(filename)
-        plt.savefig(filename.replace('.pdf', '.png'))
-        plt.savefig(filename.replace('.pdf', '.eps'))
-        ax_main.set_yscale('log')
-        plt.savefig(filename.replace('.pdf', '_log.pdf'))
-        plt.savefig(filename.replace('.pdf', '_log.png'))
-        plt.savefig(filename.replace('.pdf', '_log.eps'))
-        plt.clf()
+        save_plot(fig, ax_main, f"./plots/{filedir}/{dataset_name}_{plot_name}_{mass}")
