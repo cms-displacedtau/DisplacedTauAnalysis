@@ -32,6 +32,23 @@ SR_fullScore = {j:k for j,k in SR.items()}
 SR_fullScore["jet_score_min"] =  -999
 SR_fullScore["jet_score_max"] =  999
 
+## N-1 selection for the muon dxy plot: every SR cut except the muon dxy cut
+## (no "SR"/"PR" in the name on purpose, so selection_cuts.py still blinds data with it)
+N1_muonDxy = {j:k for j,k in SR.items()}
+N1_muonDxy["muon_dxy_min"] = -999
+N1_muonDxy["muon_dxy_max"] = 999
+
+## QCD CR as defined in Daniel's thesis (Table 7.3), plus the SR preselection (muon pT, jet pT, MET > 105)
+QCD_CR_thesis = {j:k for j,k in SR.items()}
+QCD_CR_thesis["muon_dxy_min"]  = -999
+QCD_CR_thesis["muon_dxy_max"]  = 0.045
+QCD_CR_thesis["muon_iso_min"]  = 0.1
+QCD_CR_thesis["muon_iso_max"]  = 999
+QCD_CR_thesis["jet_score_min"] = 0
+QCD_CR_thesis["jet_score_max"] = 0.2
+QCD_CR_thesis["jet_dxy_min"]   = -999
+QCD_CR_thesis["jet_dxy_max"]   = 0.1
+
 ## defined but never used
 loose_SR = {j:k for j,k in SR.items()}
 loose_SR["muon_dxy_min"] =  50E-4 ##cm
@@ -194,6 +211,7 @@ HPSTauMu = {
 selections_dict = {
   'SR' : SR,
   'SR_fullScore' : SR_fullScore,
+  'N1_muonDxy' : N1_muonDxy,
   'loose_SR_selections' : loose_SR,
   'loose_noIso_SR_selections' : loose_noIso_SR,
   'validation_prompt' : validation_prompt,
@@ -205,6 +223,7 @@ selections_dict = {
   'PR' : PR,
   'PR_Mu' : PR_Mu,
   'HPSTauMu' : HPSTauMu,
+  'QCD_CR_thesis' : QCD_CR_thesis,
 }
 
 # This function works on the assumption there is only one object in the array
