@@ -278,7 +278,7 @@ class SkimProcessor(processor.ProcessorABC):
         )
         num_good_muons = ak.count_nonzero(good_muon_mask, axis=1)
         sel_muons = events.DisMuon[good_muon_mask]
-        events['DisMuon'] = sel_muons
+        #events['DisMuon'] = sel_muons **Brandi comment out to implement methodC selection
         events = events[num_good_muons >= 1]
 
 ### If looking at prompt muon reconstruction, uncomment this section
