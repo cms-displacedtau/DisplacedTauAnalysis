@@ -36,9 +36,9 @@ treeName = "Events"
 #sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/mutau/v5/PR_Mu/"
 #sourceDir = "/eos/uscms/store/group/lpcdisptau/dally/displacedTaus/selected/Summer22_CHS_v10/pmutau/v7/PR_Mu50_LeadingPtJet_PackedSelection_PromptMuon/"
 #sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/SR"
-#sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/SR_fullScore"
+sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/SR_fullScore"
 #sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/N1_muonDxy"
-sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/QCD_CR_thesis"
+#sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/QCD_CR_thesis"
 sampleDir = sourceDir
 
 
