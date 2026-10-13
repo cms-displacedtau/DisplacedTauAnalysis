@@ -139,11 +139,13 @@ else:
 process_n_files(int(args.nfiles), fileset)
 
 ## never write into an existing output: old skims are kept for comparison
+## (the preprocessed pkl is a list of WorkItems, a plain fileset is a dict keyed by dataset)
+datasets = {w.dataset for w in fileset} if isinstance(fileset, list) else set(fileset)
 if not args.overwrite:
-    already_there = [d for d in fileset if os.path.isdir(out_folder_json + d) and os.listdir(out_folder_json + d)]
+    already_there = sorted(d for d in datasets if os.path.isdir(out_folder_json + d) and os.listdir(out_folder_json + d))
     if already_there:
         sys.exit(f"Refusing to overwrite: {out_folder_json} already has files for {already_there}. Use a new --skimversion, or --overwrite to re-run a crashed sample.")
-
+        
 ## exclude not used
 exclude_prefixes = ['Flag', 'JetSVs', 'GenJetAK8_', 'SubJet', 
                     'Photon', 'TrigObj', 'TrkMET',
