@@ -160,6 +160,9 @@ include_postfixes = ['pt', 'eta', 'phi', 'dxy', 'dz', 'dxyErr', 'dzErr', 'jetId'
                      'pfRelIso03_all', 'disTauTag_score1', 'numJets', 'numLooseBJets', 'numMediumBJets', 'numTightBJets', 'pfRelIso04_all',
                      'dphi', 'deta', 'dR', 'mT', 'pt_cut', 'dxy_cut', 'iso_cut', 'iso04_cut', 'mt_cut', 'score_cut', 'mediumId_cut', 'id_cut',
                      'dxySig', 'dzSig', 'eventWeight', 'btagPNetB',
+                     'mediumId', 'tightId', 'charge',
+                     'timeAtIpInOut', 'timeAtIpInOutErr', 'timeNDof',
+                     'outertrack_pt', 'outertrack_eta', 'outertrack_phi', 'nSeg', 'sumSegX', 'sumSegY', 'sumSegZ',
                     ]
 include_all = ['PFMET',  'ChsMET', 'PuppiMET',
                'nTau', 'nPFMET', 'nChsMET','nPuppiMET', 'nPV',
@@ -610,17 +613,42 @@ class SelectionProcessor(processor.ProcessorABC):
             #                  )
             #                  
 
-            #events = events[~(prescaled_l1 & unprescaled_l1)]
+                        # METHOD C: the candidate is the highest-pT DisMuon passing every muon cut of this
+            # selection; all other DisMuons are kept with no cuts. The candidate is always index 0,
+            # partners follow in pT order. Events with no candidate get an empty list and are dropped.
+            sel = selections_dict[selection_string]
 
-            # This will need to be re-organized to use "methodC" for keeping signal muon along with all other DisMuons
-            # Will need to creat a new function in selection_function.py since event_selection function is
-            # written for cases when there is only one object in the array
-            dismuons = events.DisMuon
-            dismuons = dismuons[dismuons.mediumId == True]
-            dismuons = dismuons[ak.argsort(dismuons[leading_muon_var], ascending=False, axis=1)]
-            dismuons = ak.singletons(ak.firsts(dismuons))
-            events["DisMuon"] = dismuons
-            num_muon = ak.count_nonzero(events["DisMuon"][leading_muon_var], axis = 1)
+            # mT is one of the muon cuts, so compute it for every muon before choosing the candidate
+            met = events.CorrectedPFMET.pt
+            met_phi = events.CorrectedPFMET.phi
+            dphi = abs(events.DisMuon.phi - met_phi)
+            dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)
+            mT = np.sqrt(2 * events.DisMuon.pt * met * (1 - np.cos(dphi)))
+            events["DisMuon"] = ak.with_field(events.DisMuon, mT, "mT")
+
+            sorted_mu = events.DisMuon[ak.argsort(events.DisMuon[leading_muon_var], axis=1, ascending=False)]
+            pass_cand = (
+                (sorted_mu.mediumId == True) &
+                (abs(sorted_mu.eta) < 2.4) &
+                (sorted_mu.pt > sel["muon_pt_min"]) &
+                (abs(sorted_mu.dxy) > sel["muon_dxy_min"]) & (abs(sorted_mu.dxy) < sel["muon_dxy_max"]) &
+                (sorted_mu.pfRelIso03_all > sel["muon_iso_min"]) & (sorted_mu.pfRelIso03_all < sel["muon_iso_max"]) &
+                (sorted_mu.pfRelIso04_all > sel["muon_iso04_min"]) & (sorted_mu.pfRelIso04_all < sel["muon_iso04_max"]) &
+                (sorted_mu.mediumId > sel["muon_medium_ID_min"]) & (sorted_mu.mediumId < sel["muon_medium_ID_max"]) &
+                (sorted_mu.tightId > sel["muon_tight_ID_min"]) & (sorted_mu.tightId < sel["muon_tight_ID_max"]) &
+                (sorted_mu.mT > sel["muon_mt_min"]) & (sorted_mu.mT < sel["muon_mt_max"])
+            )
+            li_mu = ak.local_index(sorted_mu.pt, axis=1)
+            cand_idx = ak.firsts(li_mu[pass_cand])      # per-event index of the candidate; None if no muon passes
+            has_cand = ~ak.is_none(cand_idx)
+            order = ak.concatenate(
+                [ak.singletons(cand_idx),
+                 li_mu[li_mu != ak.fill_none(cand_idx, -1)]],
+                axis=1)
+            reordered_mu = sorted_mu[order]
+            keep_per_mu, _ = ak.broadcast_arrays(has_cand, reordered_mu.pt)
+            events["DisMuon"] = reordered_mu[keep_per_mu]
+            num_muon = ak.num(events.DisMuon, axis=1)
 
             num_corrected_jets = ak.count_nonzero(events["CorrectedJet"][leading_jet_var], axis = 1)
             loose_bjets  = events["CorrectedJet"][events["CorrectedJet"]["btagPNetB"] > 0.0499]
@@ -644,12 +672,8 @@ class SelectionProcessor(processor.ProcessorABC):
             num_jets = ak.count_nonzero(events["CorrectedJet"][leading_jet_var], axis = 1)
             events = events[(num_muon > 0) & (num_jets > 0)]
 
-            met = events.CorrectedPFMET.pt
-            met_phi = events.CorrectedPFMET.phi
-            dphi = abs(events.DisMuon.phi - met_phi)
-            dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)
-            mT = np.sqrt(2 * events.DisMuon.pt * met * (1 - np.cos(dphi)))
-            events["DisMuon"] = ak.with_field(events.DisMuon, mT, "mT")
+            met = events.CorrectedPFMET.pt          # re-read after the event filter above
+            jet = ak.firsts(events.CorrectedJet)    # the one jet as a flat per-event record, so it broadcasts against every muon
 
             dphi = abs(events.CorrectedJet.phi - events.CorrectedPFMET.phi)
             dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)
@@ -662,25 +686,25 @@ class SelectionProcessor(processor.ProcessorABC):
             events["DisMuon"] = ak.with_field(events.DisMuon, dxySig, "dxySig")
             events["DisMuon"] = ak.with_field(events.DisMuon, dzSig, "dzSig")
 
-            mu_dphi = abs(events.CorrectedJet.phi - events.DisMuon.phi)
-            mu_dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)
+            mu_dphi = abs(jet.phi - events.DisMuon.phi)
+            mu_dphi = np.where(mu_dphi > np.pi, 2*np.pi - mu_dphi, mu_dphi)
             events["DisMuon"] = ak.with_field(events.DisMuon, mu_dphi, "dphi")
-            deta = abs(events.CorrectedJet.eta - events.DisMuon.eta)
+            deta = abs(jet.eta - events.DisMuon.eta)
             events["DisMuon"] = ak.with_field(events.DisMuon, deta, "deta")
-            dR = events.DisMuon.metric_table(events.CorrectedJet)
-            dR = ak.flatten(dR)
+            dR = events.DisMuon.metric_table(events.CorrectedJet)   # [event][muon][jet]
+            dR = ak.flatten(dR, axis=2)                              # -> [event][muon]
             events["DisMuon"] = ak.with_field(events.DisMuon, dR, "dR")
 
             ## apply selection using PackedSelections
             selections = selections_dict["TTMinusB_CR"]
             print(f"The selections are {selections}")
-            event_muon_selections = { 
-                        "pt_cut": ak.flatten(events.DisMuon.pt > selections["muon_pt_min"]),
-                        "dxy_cut": ak.flatten((abs(events.DisMuon.dxy) > selections["muon_dxy_min"]) & (abs(events.DisMuon.dxy) < selections["muon_dxy_max"])),
-                        "iso_cut": ak.flatten((events.DisMuon.pfRelIso03_all > selections["muon_iso_min"]) & (events.DisMuon.pfRelIso03_all < selections["muon_iso_max"])),
-                        "iso04_cut": ak.flatten((events.DisMuon.pfRelIso04_all > selections["muon_iso04_min"]) & (events.DisMuon.pfRelIso04_all < selections["muon_iso04_max"])),
-                        "mediumId_cut": ak.flatten((events.DisMuon.mediumId > selections["muon_medium_ID_min"]) &(events.DisMuon.mediumId < selections["muon_medium_ID_max"])),
-                        "mt_cut": ak.flatten((events.DisMuon.mT > selections["muon_mt_min"]) & (events.DisMuon.mT < selections["muon_mt_max"])),
+            event_muon_selections = {   # per muon now, so no ak.flatten
+                        "pt_cut": events.DisMuon.pt > selections["muon_pt_min"],
+                        "dxy_cut": (abs(events.DisMuon.dxy) > selections["muon_dxy_min"]) & (abs(events.DisMuon.dxy) < selections["muon_dxy_max"]),
+                        "iso_cut": (events.DisMuon.pfRelIso03_all > selections["muon_iso_min"]) & (events.DisMuon.pfRelIso03_all < selections["muon_iso_max"]),
+                        "iso04_cut": (events.DisMuon.pfRelIso04_all > selections["muon_iso04_min"]) & (events.DisMuon.pfRelIso04_all < selections["muon_iso04_max"]),
+                        "mediumId_cut": (events.DisMuon.mediumId > selections["muon_medium_ID_min"]) & (events.DisMuon.mediumId < selections["muon_medium_ID_max"]),
+                        "mt_cut": (events.DisMuon.mT > selections["muon_mt_min"]) & (events.DisMuon.mT < selections["muon_mt_max"]),
             }
             event_jet_selections = {
                         "pt_cut": ak.flatten(events.CorrectedJet.pt > selections["jet_pt_min"]),
@@ -700,8 +724,8 @@ class SelectionProcessor(processor.ProcessorABC):
             for key, cut in event_jet_selections.items():
                 events["CorrectedPFMET"] = ak.with_field(events.CorrectedPFMET, cut, key)
 
-            ## apply selection function
-            events = event_selection(events, selection_string)  
+            ## apply selection function (cuts on the candidate muon, keeps all muons in surviving events)
+            events = event_selection(events, selection_string)
 
             if not is_MC:
                 if 'SR' not in args.selection and "PR" not in args.selection:
