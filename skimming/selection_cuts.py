@@ -91,6 +91,15 @@ parser.add_argument(
 	"--testjob",
         action="store_true",
         help="Run a test job locally")
+parser.add_argument(
+    "--outtag",
+    default='',
+    required=False,
+    help='Optional label appended to the output folder, e.g. methodC -> SR_methodC. Record what it means in skimming/VERSIONS.md')
+parser.add_argument(
+    "--overwrite",
+    action="store_true",
+    help="Allow writing into dataset folders that already contain files (only for re-running a crashed sample)")
 args = parser.parse_args()
 
 
@@ -112,8 +121,9 @@ else:
     exit(0)
     
 
-out_folder = f'root://cmseos.fnal.gov//store/user/lpcdisptau/bskipwor/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{selection_string}/'
-
+out_label = selection_string + (f'_{args.outtag}' if args.outtag else '')
+out_folder = f'root://cmseos.fnal.gov//store/user/lpcdisptau/bskipwor/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{out_label}/'
+out_folder_json = out_folder.replace('root://cmseos.fnal.gov/', '/eos/uscms')
 #out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/bskipwor/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{selection_string}_JetDxy0p1cm/'
 
 
@@ -149,6 +159,11 @@ else:
 
 ## restrict to n files
 process_n_files(int(args.nfiles), fileset)
+## never write into an existing output: old selections are kept for comparison
+if not args.overwrite:
+    already_there = [d for d in fileset if os.path.isdir(out_folder_json + d) and os.listdir(out_folder_json + d)]
+    if already_there:
+        sys.exit(f"Refusing to overwrite: {out_folder_json} already has files for {already_there}. Use a new --outtag, or --overwrite to re-run a crashed sample.")
 ## add an else statement to prevent empty lists if nfiles > len(fileset)            
 #print("Will process {} files from the following samples:".format(args.nfiles), fileset.keys())
 

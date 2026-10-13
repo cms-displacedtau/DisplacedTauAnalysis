@@ -61,10 +61,18 @@ parser.add_argument(
 	"--testjob",
         action="store_true",
         help="Run a test job locally")
+parser.add_argument(
+    "--skimversion",
+    required=True,
+    help='Output skim version, e.g. v20. Record what it changes in skimming/VERSIONS.md')
+parser.add_argument(
+    "--overwrite",
+    action="store_true",
+    help="Allow writing into dataset folders that already contain files (only for re-running a crashed sample)")
 args = parser.parse_args()
 
 
-out_folder = f'root://cmseos.fnal.gov//store/user/lpcdisptau/bskipwor/displacedTaus/skim/{args.nanov}/mutau/v19/'
+out_folder = f'root://cmseos.fnal.gov//store/user/lpcdisptau/bskipwor/displacedTaus/skim/{args.nanov}/mutau/{args.skimversion}/'
 out_folder_json = out_folder.replace('root://cmseos.fnal.gov/','/eos/uscms')
 custom_nano_v = args.nanov + '/'
 custom_nano_v_p = args.nanov + '.'
@@ -129,6 +137,12 @@ else:
 
 ## restrict to n files
 process_n_files(int(args.nfiles), fileset)
+
+## never write into an existing output: old skims are kept for comparison
+if not args.overwrite:
+    already_there = [d for d in fileset if os.path.isdir(out_folder_json + d) and os.listdir(out_folder_json + d)]
+    if already_there:
+        sys.exit(f"Refusing to overwrite: {out_folder_json} already has files for {already_there}. Use a new --skimversion, or --overwrite to re-run a crashed sample.")
 
 ## exclude not used
 exclude_prefixes = ['Flag', 'JetSVs', 'GenJetAK8_', 'SubJet', 
