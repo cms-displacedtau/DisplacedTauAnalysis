@@ -34,6 +34,14 @@ PLOTS = [
     ("Jet_dxy", "CorrectedJet_dxy", 20, -0.1, 0.1, r"jet $d_{xy}$ [cm]", "Events / 0.01 cm", 0.1, 0.02),
 ]
 
+# y ranges measured from Daniel's Figure 7.7, so the plots can be compared directly
+YLIMS = {
+    "DisMuon_pt":  (1.3e-3, 5.4e5),
+    "Jet_pt":      (1.2e-3, 2.4e5),
+    "DisMuon_dxy": (1.1e-3, 6.7e5),
+    "Jet_dxy":     (1.0e-2, 1.0e6),
+}
+
 # (legend label, subsamples, colour), stacked bottom -> top as in the thesis
 GROUPS = [
     ("Wto2Q", ["Wto2Q-2Jets_PTQQ-100to200_1J", "Wto2Q-2Jets_PTQQ-100to200_2J",
@@ -117,6 +125,7 @@ for name, _, nb, lo, hi, xlabel, ylabel, major, minor in PLOTS:
     fig, ax = plt.subplots()
     hep.histplot(hists[name], histtype="fill", stack=True, flow="sum", label=labels, color=colours, ax=ax)
     ax.set_yscale("log")
+    ax.set_ylim(*YLIMS[name])
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.xaxis.set_major_locator(MultipleLocator(major))
