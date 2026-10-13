@@ -226,29 +226,29 @@ selections_dict = {
   'QCD_CR_thesis' : QCD_CR_thesis,
 }
 
-# This function works on the assumption there is only one object in the array
-# Will need to make a new function for new "methodC" of keeping all DisMuons in the events
-# since the selections need to be applied to candidate muon not all other muons kept in the enents
-# as this function is for cases where only one muon is kept, not multiple
 def event_selection(events, selection):
 
     selections = selections_dict[selection]
     #print(selection)
     #print ('in function selections: \n', selections)
+    # Method C: DisMuon can hold several muons, with the candidate at index 0, so cut on the candidate only.
+    # Every event must have a candidate (selection_cuts.py drops events without one), otherwise
+    # ak.flatten below would return fewer entries than there are events.
+    cand = events.DisMuon[:, :1]
     good_muons  =  ak.flatten(
-                     (events.DisMuon.pt > selections["muon_pt_min"])  &\
-                     (abs(events.DisMuon.dxy) > selections["muon_dxy_min"]) &\
-                     (abs(events.DisMuon.dxy) < selections["muon_dxy_max"]) &\
-                     (events.DisMuon.pfRelIso03_all > selections["muon_iso_min"]) &\
-                     (events.DisMuon.pfRelIso03_all < selections["muon_iso_max"]) &\
-                     (events.DisMuon.pfRelIso04_all > selections["muon_iso04_min"]) &\
-                     (events.DisMuon.pfRelIso04_all < selections["muon_iso04_max"]) &\
-                     (events.DisMuon.mediumId > selections["muon_medium_ID_min"]) &\
-                     (events.DisMuon.mediumId < selections["muon_medium_ID_max"]) &\
-                     (events.DisMuon.tightId > selections["muon_tight_ID_min"]) &\
-                     (events.DisMuon.tightId < selections["muon_tight_ID_max"]) &\
-                     (events.DisMuon.mT > selections["muon_mt_min"]) &\
-                     (events.DisMuon.mT < selections["muon_mt_max"])
+                     (cand.pt > selections["muon_pt_min"])  &\
+                     (abs(cand.dxy) > selections["muon_dxy_min"]) &\
+                     (abs(cand.dxy) < selections["muon_dxy_max"]) &\
+                     (cand.pfRelIso03_all > selections["muon_iso_min"]) &\
+                     (cand.pfRelIso03_all < selections["muon_iso_max"]) &\
+                     (cand.pfRelIso04_all > selections["muon_iso04_min"]) &\
+                     (cand.pfRelIso04_all < selections["muon_iso04_max"]) &\
+                     (cand.mediumId > selections["muon_medium_ID_min"]) &\
+                     (cand.mediumId < selections["muon_medium_ID_max"]) &\
+                     (cand.tightId > selections["muon_tight_ID_min"]) &\
+                     (cand.tightId < selections["muon_tight_ID_max"]) &\
+                     (cand.mT > selections["muon_mt_min"]) &\
+                     (cand.mT < selections["muon_mt_max"])
                    ) 
     
     good_jets   = ak.flatten(
@@ -313,11 +313,13 @@ def manual_blinding(events):
     selections = selections_dict['SR']
     #print(selection)
     #print ('in function selections: \n', selections)
+    # Method C: blind on the candidate muon (index 0) only, not on the partner muons
+    cand = events.DisMuon[:, :1]
     good_muons  =  ak.flatten(
-                     (abs(events.DisMuon.dxy) > selections["muon_dxy_min"]) &\
-                     (abs(events.DisMuon.dxy) < selections["muon_dxy_max"]) &\
-                     (events.DisMuon.pfRelIso03_all > selections["muon_iso_min"]) &\
-                     (events.DisMuon.pfRelIso03_all < selections["muon_iso_max"]) 
+                     (abs(cand.dxy) > selections["muon_dxy_min"]) &\
+                     (abs(cand.dxy) < selections["muon_dxy_max"]) &\
+                     (cand.pfRelIso03_all > selections["muon_iso_min"]) &\
+                     (cand.pfRelIso03_all < selections["muon_iso_max"]) 
                    ) 
     
     good_jets   = ak.flatten(
