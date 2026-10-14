@@ -1,0 +1,5 @@
+skimming/samples/
+plotting/plots_config/Summer22_CHS_v19/
+plotting/plots/
+*.bak
+__pycache__/

@@ -39,7 +39,7 @@ treeName = "Events"
 #sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/SR_fullScore"
 #sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/N1_muonDxy"
 #sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v19/QCD_CR_thesis"
-sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v20/SR_methodC"
+sourceDir = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau/v20/SR_methodC2"
 sampleDir = sourceDir
 
 
