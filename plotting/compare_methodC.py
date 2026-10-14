@@ -10,7 +10,7 @@ What a correct Method C looks like, compared with the leading-muon selection on 
   * partner muons (index 1+) are kept in some events
 
 Run inside the coffea container, from plotting/, e.g.:
-  python compare_methodC.py --ref <v19 leading-muon faster_trial> --test <v20 methodC2 faster_trial> --name leading_vs_methodC2
+  python compare_methodC.py            (defaults: v19/SR leading muon vs v20/SR_methodC2)
 Output: plots/methodC_validation/<name>/  (summary.txt, summary.csv, PDFs + PNGs; unweighted event counts)
 """
 import os, sys, glob, argparse
@@ -32,7 +32,7 @@ from selection_function import selections_dict
 
 base = "/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/selected/Summer22_CHS_v19/mutau"
 parser = argparse.ArgumentParser()
-parser.add_argument("--ref", default=f"{base}/v19/SR_leadingRerun/faster_trial", help="merged reference ntuples")
+parser.add_argument("--ref", default=f"{base}/v19/SR/faster_trial", help="merged reference ntuples")
 parser.add_argument("--test", default=f"{base}/v20/SR_methodC2/faster_trial", help="merged ntuples being validated")
 parser.add_argument("--ref-label", default="Leading muon (v19)")
 parser.add_argument("--test-label", default="Method C (v20)")

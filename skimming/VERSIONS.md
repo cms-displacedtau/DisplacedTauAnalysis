@@ -13,15 +13,15 @@ Commit before every large run and record the hash here (`git log -1 --oneline`).
 - Input: Run3_Summer22_chs_AK4PFCands_v19 NanoAOD
 - Event cuts: MET triggers, noise filters, >=1 DisMuon pT>20 |eta|<2.4, >=1 jet pT>20 |eta|<2.4
 - The DisMuon collection itself is filtered to pT>20 |eta|<2.4, so lower-pT partner muons are dropped
-- Commit: <fill in>
-- Known issue: the original `samples/.../mutau/v19/signal_preprocessed.pkl` was missing 1 Stau_300_1000mm skim file
-  (preprocess.py runs with skipbadfiles=True and dropped it silently). Kept as `signal_preprocessed_v19orig_missing1file.pkl`;
-  re-preprocessed on <date>, check shows no files missing.
+- Commit: not recorded (made before this file existed)
+- Known issue: skim chunk `Stau_300_1000mm/nano_3_0_18707.root` has 0 entries (the skim job failed while writing it;
+  the skim never writes empty files on purpose). The same chunk in v20 has 10666 entries.
+  Effect: v19/SR Stau_300_1000mm is missing 198 events (~12% of that point). All other v19 signal chunks are complete.
 
 ### v20
 - Same as v19, but the DisMuon collection is NOT filtered: every DisMuon is kept
   (the event still needs >=1 DisMuon pT>20 |eta|<2.4). Needed for Method C / cosmic partner legs.
-- Skim code commit: 4262a66c. Run with: <hash>
+- Skim code commit: 4262a66c. Run with: 6e9eb889 (signal)
 - Signal: preprocess check shows no files missing. Backgrounds: <fill in as they are done>
 
 ## Selections — `selected/Summer22_CHS_v19/mutau/<skimversion>/<selection>[_<tag>]/`
@@ -29,21 +29,22 @@ Commit before every large run and record the hash here (`git log -1 --oneline`).
 ### v19/SR, v19/SR_fullScore, v19/N1_muonDxy, v19/QCD_CR_thesis
 - Leading-muon method: leading-pT mediumId DisMuon + highest disTauTag_score1 jetId jet, then cuts on those.
 - One DisMuon per event. DisMuon_dphi is actually the jet-MET dphi (bug, fixed in Method C code).
-- v19/SR Stau_300_1000mm is missing 198 events (the dropped skim file above): its yield is ~12% low.
+- v19/SR Stau_300_1000mm is missing 198 events (the empty v19 skim chunk above): its yield is ~12% low.
 
-### v19/SR_leadingRerun
-- Same leading-muon code as v19/SR, rerun on the re-preprocessed (complete) v19 signal input.
-- Code: `skimming/selection_cuts_leadingmuon.py` = selection_cuts.py at 7cd36d9d; only the output folder suffix differs.
-  It uses the current selection_function.py, whose only change (cand = DisMuon[:, :1]) does nothing when there is one muon.
-- Validation vs v19/SR: <fill in, expected identical except Stau_300_1000mm +198>
-- Run with: <hash>
-
-### v20/SR_methodC — BROKEN, deleted on <date>
+### v20/SR_methodC — BROKEN, deleted 2026-10-14
 - DisMuon was option-typed (from ak.firsts on the jet), so utils.is_rootcompat silently dropped every DisMuon branch.
 
 ### v20/SR_methodC2
 - Method C: candidate = highest-pT DisMuon passing ALL muon cuts of the selection; all other DisMuons kept with
   no cuts, candidate at index 0. Event cuts (event_selection, manual_blinding) use the candidate only.
 - Also: DisMuon_dphi fixed (muon-jet), dR flatten fixed; saves mediumId, tightId, charge, timing, outer-track/segment vars.
-- Commits: 68eccb7c, 489280fb, 1654027f (CorrectedJet[:, 0] fix). Run with: <hash>
-- Validation vs v19/SR_leadingRerun (signal): <fill in: ref_only = 0, same candidate in all shared events, gained = N events, all with a muon ahead>
+- Commits: 68eccb7c, 489280fb, 1654027f (CorrectedJet[:, 0] fix). Run with: 1654027f (signal)
+- Validation vs v19/SR (signal, `compare_methodC.py`, validation scripts committed in 8d69be1):
+  every v19/SR event is in SR_methodC2 with the identical candidate muon (329327 of 329327; ref_only = 0 in all 32 points).
+  Gained events: 368 in total.
+  - 170 are real Method C gains (0.05%): every one has a higher-pT muon ahead of the candidate that fails the cuts.
+  - 198 are in Stau_300_1000mm and are exactly the SR events of the empty v19 chunk nano_3_0_18707
+    (203 Method C events come from that chunk, 0 of them in v19/SR; 198 have no muon ahead, 5 are real gains).
+  Open item: 124 events (0.04%) have a stored candidate pT of 29.89-30.0 although the pT > 30 cut passed
+  (DisMuon_pt_cut = True for all of them, i.e. pT was > 30 when the cut ran). Same events in v19/SR, so this predates
+  Method C. Selection is correct; the stored pT value differs from the one used in the cut. Cause under investigation.
