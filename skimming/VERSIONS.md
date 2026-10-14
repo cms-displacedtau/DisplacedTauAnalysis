@@ -45,6 +45,7 @@ Commit before every large run and record the hash here (`git log -1 --oneline`).
   - 170 are real Method C gains (0.05%): every one has a higher-pT muon ahead of the candidate that fails the cuts.
   - 198 are in Stau_300_1000mm and are exactly the SR events of the empty v19 chunk nano_3_0_18707
     (203 Method C events come from that chunk, 0 of them in v19/SR; 198 have no muon ahead, 5 are real gains).
-  Open item: 124 events (0.04%) have a stored candidate pT of 29.89-30.0 although the pT > 30 cut passed
-  (DisMuon_pt_cut = True for all of them, i.e. pT was > 30 when the cut ran). Same events in v19/SR, so this predates
-  Method C. Selection is correct; the stored pT value differs from the one used in the cut. Cause under investigation.
+  Explained: 124 events (0.04%) have stored candidate pT 29.89-30.0 although pT > 30 passed. coffea's `.pt` is computed
+  by scikit-hep vector from DisMuon px/py, which are stored at low precision (e.g. px=27.0, py=13.125 -> 30.021 vs
+  stored pt 29.974). Affects every `.pt` cut on DisMuon since before Method C (v19 and Daniel's code too).
+  Fix (cut on ["pt"] or drop px/py at load) to be decided; would be a new tagged selection.
