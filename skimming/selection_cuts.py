@@ -690,7 +690,7 @@ class SelectionProcessor(processor.ProcessorABC):
             events = events[(num_muon > 0) & (num_jets > 0)]
 
             met = events.CorrectedPFMET.pt          # re-read after the event filter above
-            jet = ak.firsts(events.CorrectedJet)    # the one jet as a flat per-event record, so it broadcasts against every muon
+            jet = events.CorrectedJet[:, 0]    # the one jet as a flat per-event record, so it broadcasts against every muon
 
             dphi = abs(events.CorrectedJet.phi - events.CorrectedPFMET.phi)
             dphi = np.where(dphi > np.pi, 2*np.pi - dphi, dphi)
