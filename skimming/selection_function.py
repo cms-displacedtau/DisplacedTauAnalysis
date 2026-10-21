@@ -317,7 +317,6 @@ def manual_blinding(events):
     cand = events.DisMuon[:, :1]
     good_muons  =  ak.flatten(
                      (abs(cand.dxy) > selections["muon_dxy_min"]) &\
-                     (abs(cand.dxy) < selections["muon_dxy_max"]) &\
                      (cand.pfRelIso03_all > selections["muon_iso_min"]) &\
                      (cand.pfRelIso03_all < selections["muon_iso_max"]) 
                    ) 
