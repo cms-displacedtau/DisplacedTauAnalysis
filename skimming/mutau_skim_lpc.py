@@ -208,12 +208,9 @@ class SkimProcessor(processor.ProcessorABC):
         # Determine if dataset is MC or Data
         is_MC = True if hasattr(events, "GenPart") else False
         if not is_MC:
-            try:
-                lumimask = select_lumis('2022', events)
-                events = events[lumimask]
-            except:
-                print (f"[ lumimask ] Skip now! Unable to find year info of {args.sample}")
-
+            lumimask = select_lumis('2022', events)
+            events = events[lumimask]
+            
         ## retrieve the list of run/lumi being processed        
         run_dict = defaultdict(list)
         dataset_run_dict = defaultdict(list)
@@ -381,7 +378,7 @@ if __name__ == "__main__":
                 cores= 2,
                 memory='12GB',
                 log_directory = "/uscmst1b_scratch/lpc1/3DayLifetime/bskipwor/log/prompt_skim/v10",
-                transfer_input_files=['utils.py', './selections/lumi_selections.py'],
+                transfer_input_files=['utils.py', './selections/lumi_selections.py', '/eos/uscms/store/user/lpcdisptau/json/Cert_Collisions2022_355100_362760_Golden.json'],
                )
         cluster.adapt(minimum=1, maximum=200)#, wait_count=3)
         print(cluster.job_script())
