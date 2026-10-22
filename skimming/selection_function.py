@@ -1,4 +1,5 @@
 import awkward as ak
+import numpy as np
 
 SR = {
               "muon_pt_min":                30., ##GeV
@@ -31,6 +32,12 @@ SR = {
 SR_fullScore = {j:k for j,k in SR.items()}
 SR_fullScore["jet_score_min"] =  -999
 SR_fullScore["jet_score_max"] =  999
+
+## cosmic background estimate: SR cuts with the jet-score cut removed. The name has no "SR"/"PR" on purpose,
+## so manual_blinding runs on data: untagged events with jet score > 0.8 are removed, cosmic-tagged events are kept
+CosmicEst = {j:k for j,k in SR.items()}
+CosmicEst["jet_score_min"] =  -999
+CosmicEst["jet_score_max"] =  999
 
 ## N-1 selection for the muon dxy plot: every SR cut except the muon dxy cut
 ## (no "SR"/"PR" in the name on purpose, so selection_cuts.py still blinds data with it)
@@ -211,6 +218,7 @@ HPSTauMu = {
 selections_dict = {
   'SR' : SR,
   'SR_fullScore' : SR_fullScore,
+  'CosmicEst' : CosmicEst,
   'N1_muonDxy' : N1_muonDxy,
   'loose_SR_selections' : loose_SR,
   'loose_noIso_SR_selections' : loose_noIso_SR,
@@ -308,6 +316,9 @@ def prompt_muon_event_selection(events, selection):
 
     return events
 
+## blinding box: the SR muon and jet-|dxy| cuts, but jet score > 0.8 instead of the SR's 0.9 (safety margin)
+BLIND_JET_SCORE_MIN = 0.8
+
 def manual_blinding(events):
 
     selections = selections_dict['SR']
@@ -322,7 +333,7 @@ def manual_blinding(events):
                    ) 
     
     good_jets   = ak.flatten(
-                    (events.CorrectedJet.disTauTag_score1 > selections["jet_score_min"]) &\
+                    (events.CorrectedJet.disTauTag_score1 > BLIND_JET_SCORE_MIN) &\
                     (events.CorrectedJet.disTauTag_score1 < selections["jet_score_max"]) &\
                     (abs(events.CorrectedJet.dxy) > selections["jet_dxy_min"]) &\
                     (abs(events.CorrectedJet.dxy) < selections["jet_dxy_max"]) 
@@ -331,7 +342,13 @@ def manual_blinding(events):
     #good_MET = (events.CorrectedPFMET.pt > selections["MET_pt"])
 
 
-    events = events[~(good_muons & good_jets)]
+    # cosmic-tagged events are removed by the cosmic veto, so they are not in the signal region and stay visible
+    if "cosmic_tag" in events.fields:
+        tagged = ak.to_numpy(events.cosmic_tag)
+    else:
+        tagged = np.zeros(len(events), dtype=bool)
+
+    events = events[~(good_muons & good_jets) | tagged]
 
     return events
 
@@ -398,4 +415,95 @@ def Zpeak_selection(events, selections):
 
     events = events[num_muon_mask & num_jet_mask & good_events]
 
+    return events
+
+
+## ---------------------------------------------------------------------------------------------
+## Cosmic tagging: flags only, nothing is removed. Port of the veto in
+## brandiskip/DisplacedTauAnalysis@sara_samples scripts/cosmics_final.py (commit 28b7914).
+## Directions are built from the stored pt/eta/phi fields, not coffea's .pt/.phi (those come from
+## the low-precision px/py). Events with fewer than 2 DisMuons can never be tagged.
+##   cosmic_s1: a pair that looks like a duplicate (|deta| < 0.01, |dphi| < 0.001) or is collinear
+##              (inner-track cosA > 0.90) has outer-track cosA < -0.8, otherwise segment cosA < -0.8
+##              (needs the outertrack/segment branches; cosmic_s1_available says if they exist)
+##   cosmic_s2: cosA(candidate, any other DisMuon) < -0.99
+##   cosmic_s3: highest-pT DisMuon with phi > 0 and highest-pT DisMuon with phi < 0, both
+##              timeNDof > 7, and t(upper) - t(lower) < -20 ns
+##   cosmic_tag = s1 | s2 | s3
+## ---------------------------------------------------------------------------------------------
+COSMIC_DUP_DETA = 0.01
+COSMIC_DUP_DPHI = 0.001
+COSMIC_COLL_COSA = 0.90
+COSMIC_LEGS_COSA = -0.8
+COSMIC_B2B_COSA = -0.99
+COSMIC_DT = -20.
+COSMIC_TIME_NDOF = 7
+
+
+def _cos_angle(eta1, phi1, eta2, phi2):
+    """cos of the 3D opening angle between two directions given by eta, phi"""
+    return (np.cos(phi1 - phi2) + np.sinh(eta1) * np.sinh(eta2)) / (np.cosh(eta1) * np.cosh(eta2))
+
+
+def _delta_phi(phi1, phi2):
+    return (phi1 - phi2 + np.pi) % (2 * np.pi) - np.pi
+
+
+def cosmic_tagging(events):
+    mu = events.DisMuon            # candidate first (Method C), all other DisMuons kept
+    eta, phi = mu["eta"], mu["phi"]
+
+    ## stage 1: every pair of DisMuons
+    ia, ib = ak.unzip(ak.argcombinations(eta, 2, axis=1))
+    eta_a, eta_b, phi_a, phi_b = eta[ia], eta[ib], phi[ia], phi[ib]
+    dup = (abs(eta_a - eta_b) < COSMIC_DUP_DETA) & (abs(_delta_phi(phi_a, phi_b)) < COSMIC_DUP_DPHI)
+    coll = (_cos_angle(eta_a, phi_a, eta_b, phi_b) > COSMIC_COLL_COSA) & ~dup
+    flag = dup | coll
+
+    s1_available = all(f in mu.fields for f in ("outertrack_pt", "outertrack_eta", "outertrack_phi",
+                                                "nSeg", "sumSegX", "sumSegY", "sumSegZ"))
+    if s1_available:
+        ot_pt, ot_eta, ot_phi = mu["outertrack_pt"], mu["outertrack_eta"], mu["outertrack_phi"]
+        a_has, b_has = ot_pt[ia] > 0, ot_pt[ib] > 0
+        both, only_a, only_b = a_has & b_has, a_has & ~b_has, ~a_has & b_has
+        a_flip = (phi_a > 0) != (ot_phi[ia] > 0)
+        b_flip = (phi_b > 0) != (ot_phi[ib] > 0)
+        elig = both | (only_a & a_flip) | (only_b & b_flip)
+        cos_out = ak.where(both, _cos_angle(ot_eta[ia], ot_phi[ia], ot_eta[ib], ot_phi[ib]),
+                  ak.where(only_a & a_flip, _cos_angle(ot_eta[ia], ot_phi[ia], eta_b, phi_b),
+                  ak.where(only_b & b_flip, _cos_angle(eta_a, phi_a, ot_eta[ib], ot_phi[ib]), np.nan)))
+
+        sx, sy, sz, nseg = mu["sumSegX"], mu["sumSegY"], mu["sumSegZ"], mu["nSeg"]
+        seg_dot = sx[ia] * sx[ib] + sy[ia] * sy[ib] + sz[ia] * sz[ib]
+        norm_a = np.sqrt(sx[ia]**2 + sy[ia]**2 + sz[ia]**2)
+        norm_b = np.sqrt(sx[ib]**2 + sy[ib]**2 + sz[ib]**2)
+        seg_ok = (nseg[ia] > 0) & (nseg[ib] > 0) & (norm_a > 0) & (norm_b > 0)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            cos_seg = ak.where(seg_ok, seg_dot / (norm_a * norm_b), np.nan)
+
+        rem_out = flag & elig & (cos_out < COSMIC_LEGS_COSA)
+        rem_seg = flag & ~rem_out & (cos_seg < COSMIC_LEGS_COSA)
+        s1 = ak.to_numpy(ak.any(rem_out | rem_seg, axis=1))
+    else:
+        s1 = np.zeros(len(events), dtype=bool)
+
+    ## stage 2: candidate vs every other DisMuon
+    c_eta = ak.fill_none(ak.firsts(eta), 0.)
+    c_phi = ak.fill_none(ak.firsts(phi), 0.)
+    cos_cand = _cos_angle(c_eta, c_phi, eta[:, 1:], phi[:, 1:])
+    s2 = ak.to_numpy(ak.any(cos_cand < COSMIC_B2B_COSA, axis=1))
+
+    ## stage 3: timing of the highest-pT upper (phi > 0) and lower (phi < 0) DisMuon
+    up, lo = mu[phi > 0], mu[phi < 0]
+    up_lead = ak.firsts(up[ak.argmax(up["pt"], axis=1, keepdims=True)])
+    lo_lead = ak.firsts(lo[ak.argmax(lo["pt"], axis=1, keepdims=True)])
+    s3 = ((up_lead["timeNDof"] > COSMIC_TIME_NDOF) & (lo_lead["timeNDof"] > COSMIC_TIME_NDOF)
+          & ((up_lead["timeAtIpInOut"] - lo_lead["timeAtIpInOut"]) < COSMIC_DT))
+    s3 = ak.to_numpy(ak.fill_none(s3, False))   # None = no upper/lower pair
+
+    events = ak.with_field(events, s1, "cosmic_s1")
+    events = ak.with_field(events, s2, "cosmic_s2")
+    events = ak.with_field(events, s3, "cosmic_s3")
+    events = ak.with_field(events, s1 | s2 | s3, "cosmic_tag")
+    events = ak.with_field(events, np.full(len(events), s1_available), "cosmic_s1_available")
     return events

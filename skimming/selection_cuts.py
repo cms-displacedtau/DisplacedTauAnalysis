@@ -33,7 +33,7 @@ import warnings
 warnings.filterwarnings("ignore", module="coffea") # Suppress annoying deprecation warnings for coffea vector, c.f. https://github.com/CoffeaTeam/coffea/blob/master/src/coffea/nanoevents/methods/candidate.py
 import logging
 
-from selection_function import event_selection, event_selection_hpstau_mu, manual_blinding, prompt_muon_event_selection
+from selection_function import event_selection, event_selection_hpstau_mu, manual_blinding, prompt_muon_event_selection, cosmic_tagging
 from selection_function import selections_dict 
 from utils import process_n_files, is_rootcompat, uproot_writeable_selected
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
@@ -100,6 +100,10 @@ parser.add_argument(
     "--overwrite",
     action="store_true",
     help="Allow writing into dataset folders that already contain files (only for re-running a crashed sample)")
+parser.add_argument(
+    "--unblind",
+    action="store_true",
+    help="Allow a selection with SR in its name on data (that skips manual_blinding). Only with explicit approval to unblind.")
 args = parser.parse_args()
 
 
@@ -124,6 +128,11 @@ else:
 out_label = selection_string + (f'_{args.outtag}' if args.outtag else '')
 out_folder = f'root://cmseos.fnal.gov//store/user/lpcdisptau/bskipwor/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{out_label}/'
 out_folder_json = out_folder.replace('root://cmseos.fnal.gov/', '/eos/uscms')
+
+## data + a selection with "SR" in its name skips manual_blinding, which would unblind: refuse unless asked explicitly
+if args.sample in ("JetMET_2022", "Muon") and "SR" in selection_string and not args.unblind:
+    sys.exit(f"Refusing to run selection '{selection_string}' on data: it would skip the blinding. "
+             "Use a selection without SR in its name (e.g. CosmicEst), or --unblind only with approval.")
 #out_folder = f'root://cmseos.fnal.gov//store/group/lpcdisptau/bskipwor/displacedTaus/selected/{args.nanov}/{skim_folder}/{args.skimversion}/{selection_string}_JetDxy0p1cm/'
 
 
@@ -185,7 +194,8 @@ include_all = ['PFMET',  'ChsMET', 'PuppiMET',
                'nTau', 'nPFMET', 'nChsMET','nPuppiMET', 'nPV',
                'nVtx', 'event', 'run', 'luminosityBlock', 'Pileup', 'weights', 'genWeight', 'weight', 'HLT',
                'nDisMuon', 'nMuon', 'nJet', 'mT', 'PV', 'mutau_mass', 'GenVisTau',
-               'CorrectedPFMET', 'n_muons', 'n_jets', "disDimuon", "JetPFCands", "PFCands" 
+               'CorrectedPFMET', 'n_muons', 'n_jets', "disDimuon", "JetPFCands", "PFCands",
+               'cosmic_',
               ]
 
 ### FIXME: need to add Lxy and IP at GEN level                             
@@ -711,6 +721,10 @@ class SelectionProcessor(processor.ProcessorABC):
             dR = events.DisMuon.metric_table(events.CorrectedJet)   # [event][muon][jet]
             dR = ak.flatten(dR, axis=2)                              # -> [event][muon]
             events["DisMuon"] = ak.with_field(events.DisMuon, dR, "dR")
+
+            ## cosmic tagging: adds cosmic_s1/s2/s3, cosmic_tag, cosmic_s1_available (flags only, nothing removed).
+            ## Must come before manual_blinding, which keeps cosmic-tagged events visible.
+            events = cosmic_tagging(events)
 
             ## apply selection using PackedSelections
             selections = selections_dict["TTMinusB_CR"]
