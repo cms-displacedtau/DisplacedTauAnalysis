@@ -713,7 +713,18 @@ class SelectionProcessor(processor.ProcessorABC):
 
             num_jets = ak.count_nonzero(events["CorrectedJet"][leading_jet_var], axis = 1)
             events = events[(num_muon > 0) & (num_jets > 0)]
-            cutflow["08 jet: >=1 jet with jetId"] = len(events)
+
+            ## cosmic tagging needs only the DisMuons (candidate first), so it runs as soon as the objects are chosen.
+            ## Adds cosmic_s1/s2/s3, cosmic_tag, cosmic_s1_available (flags only, nothing removed).
+            events = cosmic_tagging(events)
+
+            ## Data: blind HERE, before any cutflow count that involves the chosen jet. Every number from this step on
+            ## excludes the blinded box, and no two printed numbers differ only by the blinded events, so the
+            ## blinded-region yield cannot be read off the cutflow.
+            blind_data = (not is_MC) and ('SR' not in args.selection) and ("PR" not in args.selection)
+            if blind_data:
+                events = manual_blinding(events)
+            cutflow["08 jet: >=1 jet with jetId" + (" (data: blinded box removed)" if blind_data else "")] = len(events)
 
             ## cutflow: cuts on the chosen jet (highest disTauTag score with jetId) and MET, cumulative,
             ## same expressions as event_selection
@@ -752,10 +763,6 @@ class SelectionProcessor(processor.ProcessorABC):
             dR = ak.flatten(dR, axis=2)                              # -> [event][muon]
             events["DisMuon"] = ak.with_field(events.DisMuon, dR, "dR")
 
-            ## cosmic tagging: adds cosmic_s1/s2/s3, cosmic_tag, cosmic_s1_available (flags only, nothing removed).
-            ## Must come before manual_blinding, which keeps cosmic-tagged events visible.
-            events = cosmic_tagging(events)
-
             ## apply selection using PackedSelections
             selections = selections_dict["TTMinusB_CR"]
             print(f"The selections are {selections}")
@@ -788,11 +795,7 @@ class SelectionProcessor(processor.ProcessorABC):
             ## apply selection function (cuts on the candidate muon, keeps all muons in surviving events)
             events = event_selection(events, selection_string)
             cutflow["14 event_selection (all cuts; should equal 13)"] = len(events)
-
-            if not is_MC:
-                if 'SR' not in args.selection and "PR" not in args.selection:
-                    events = manual_blinding(events)
-                    cutflow["15 after blinding (data)"] = len(events)
+            ## (data blinding already happened above, before the jet cutflow steps)
 
         logger.info(f"Chose leading objects & filtered events")
 
