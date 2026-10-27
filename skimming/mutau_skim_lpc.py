@@ -409,6 +409,20 @@ if __name__ == "__main__":
         with open(f"{out_folder_json}processed_lumis_{isubsample}.json", "w") as fp:
             ## convert to normal dict and dump as JSON
             json.dump({isubsample: v for v in out['run_dict'][isubsample].items()}, fp, indent=2)
+        ## the file above keeps only the LAST run (fine for MC, which is all run 1, and make_sum_genw_json.py
+        ## reads that format). Also write the complete run -> lumisection list in golden-JSON format,
+        ## which is what brilcalc needs for data.
+        full = {}
+        for run, lumis in out['run_dict'][isubsample].items():
+            ranges = []
+            for ls in sorted(set(lumis)):
+                if ranges and ls == ranges[-1][1] + 1:
+                    ranges[-1][1] = ls
+                else:
+                    ranges.append([ls, ls])
+            full[str(run)] = ranges
+        with open(f"{out_folder_json}processed_lumis_full_{isubsample}.json", "w") as fp:
+            json.dump(full, fp, indent=1)
         ## save proc report to json file (not useful for now)
         with open(f'{out_folder_json}result_{isubsample}.json', 'w') as fp:  
             json.dump(proc_report,fp)

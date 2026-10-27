@@ -266,6 +266,8 @@ class SelectionProcessor(processor.ProcessorABC):
 
         logger.info(f"Start process for {events.metadata['dataset']}")
         dataset = events.metadata["dataset"]    
+        ## cutflow: unweighted event counts after each step, summed over chunks per dataset
+        cutflow = {"00 input (skim)": n_evts}
 
         leading_muon_var = self.leading_muon_var
         leading_jet_var = self.leading_jet_var
@@ -407,6 +409,7 @@ class SelectionProcessor(processor.ProcessorABC):
         veto = ak.unflatten(veto, ak.num(jets))
         veto_mask = ak.all(veto == 0, axis = -1)
         events = events[veto_mask]
+        cutflow["01 jet veto map"] = len(events)
 
 
         ## IMPORTANT
@@ -665,6 +668,18 @@ class SelectionProcessor(processor.ProcessorABC):
                 (sorted_mu.tightId > sel["muon_tight_ID_min"]) & (sorted_mu.tightId < sel["muon_tight_ID_max"]) &
                 (sorted_mu.mT > sel["muon_mt_min"]) & (sorted_mu.mT < sel["muon_mt_max"])
             )
+            ## cutflow: events with >=1 DisMuon passing the muon cuts so far (cumulative, same cuts as pass_cand)
+            m = (sorted_mu.mediumId == True)
+            cutflow["02 muon: mediumId"] = int(ak.sum(ak.any(m, axis=1)))
+            m = m & (abs(sorted_mu.eta) < 2.4)
+            cutflow["03 muon: + |eta| < 2.4"] = int(ak.sum(ak.any(m, axis=1)))
+            m = m & (sorted_mu.pt > sel["muon_pt_min"])
+            cutflow[f"04 muon: + pT > {sel['muon_pt_min']}"] = int(ak.sum(ak.any(m, axis=1)))
+            m = m & (abs(sorted_mu.dxy) > sel["muon_dxy_min"]) & (abs(sorted_mu.dxy) < sel["muon_dxy_max"])
+            cutflow[f"05 muon: + {sel['muon_dxy_min']} < |dxy| < {sel['muon_dxy_max']} cm"] = int(ak.sum(ak.any(m, axis=1)))
+            m = m & (sorted_mu.pfRelIso03_all > sel["muon_iso_min"]) & (sorted_mu.pfRelIso03_all < sel["muon_iso_max"])
+            cutflow[f"06 muon: + iso03 < {sel['muon_iso_max']}"] = int(ak.sum(ak.any(m, axis=1)))
+            cutflow["07 muon: + iso04/ID/mT windows (= candidate exists)"] = int(ak.sum(ak.any(pass_cand, axis=1)))
             li_mu = ak.local_index(sorted_mu.pt, axis=1)
             cand_idx = ak.firsts(li_mu[pass_cand])      # per-event index of the candidate; None if no muon passes
             has_cand = ~ak.is_none(cand_idx)
@@ -698,6 +713,21 @@ class SelectionProcessor(processor.ProcessorABC):
 
             num_jets = ak.count_nonzero(events["CorrectedJet"][leading_jet_var], axis = 1)
             events = events[(num_muon > 0) & (num_jets > 0)]
+            cutflow["08 jet: >=1 jet with jetId"] = len(events)
+
+            ## cutflow: cuts on the chosen jet (highest disTauTag score with jetId) and MET, cumulative,
+            ## same expressions as event_selection
+            cj = ak.firsts(events.CorrectedJet)
+            m = cj.pt > sel["jet_pt_min"]
+            cutflow[f"09 jet: + pT > {sel['jet_pt_min']}"] = int(ak.sum(m))
+            m = m & (cj.disTauTag_score1 > sel["jet_score_min"]) & (cj.disTauTag_score1 < sel["jet_score_max"])
+            cutflow[f"10 jet: + {sel['jet_score_min']} < score < {sel['jet_score_max']}"] = int(ak.sum(m))
+            m = m & (abs(cj.dxy) > sel["jet_dxy_min"]) & (abs(cj.dxy) < sel["jet_dxy_max"])
+            cutflow[f"11 jet: + {sel['jet_dxy_min']} < |dxy| < {sel['jet_dxy_max']} cm"] = int(ak.sum(m))
+            m = m & (cj.btagPNetB > sel["jet_btag_min"]) & (cj.btagPNetB < sel["jet_btag_max"])
+            cutflow["12 jet: + btag window"] = int(ak.sum(m))
+            m = m & (events.CorrectedPFMET.pt > sel["MET_pt"])
+            cutflow[f"13 + MET > {sel['MET_pt']}"] = int(ak.sum(m))
 
             met = events.CorrectedPFMET.pt          # re-read after the event filter above
             jet = events.CorrectedJet[:, 0]    # the one jet as a flat per-event record, so it broadcasts against every muon
@@ -757,10 +787,12 @@ class SelectionProcessor(processor.ProcessorABC):
 
             ## apply selection function (cuts on the candidate muon, keeps all muons in surviving events)
             events = event_selection(events, selection_string)
+            cutflow["14 event_selection (all cuts; should equal 13)"] = len(events)
 
             if not is_MC:
                 if 'SR' not in args.selection and "PR" not in args.selection:
                     events = manual_blinding(events)
+                    cutflow["15 after blinding (data)"] = len(events)
 
         logger.info(f"Chose leading objects & filtered events")
 
@@ -779,6 +811,7 @@ class SelectionProcessor(processor.ProcessorABC):
         if not len(events) > 0:
             return {
                 "entries_written": 0,
+                "cutflow": {dataset: cutflow},
                  #"run_dict" : run_dict
             }
 
@@ -786,12 +819,15 @@ class SelectionProcessor(processor.ProcessorABC):
         events_to_write = uproot_writeable_selected(events, include_all, include_prefixes, include_postfixes)
         # unique name: dataset name + chunk range
         fname = os.path.basename(events.metadata["filename"]).replace(".root", "")
-        outname = f"{out_folder}{dataset}/{fname}_{selection_string}.root"
+        ## the entry range is part of the name: one input file can be split into several chunks,
+        ## and with the file name alone each chunk overwrote the previous chunk's output
+        start, stop = events.metadata["entrystart"], events.metadata["entrystop"]
+        outname = f"{out_folder}{dataset}/{fname}_{start}_{stop}_{selection_string}.root"
 
         with uproot.recreate(outname) as fout:
             fout["Events"] = events_to_write
 #         skim = ak.to_parquet(events_to_write, outname.replace('.root', '.parquet'), extensionarray=False)
-        return {"entries_written": len(events_to_write)}
+        return {"entries_written": len(events_to_write), "cutflow": {dataset: cutflow}}
 
 
     def postprocess(self, accumulator):
@@ -845,6 +881,25 @@ if __name__ == "__main__":
         uproot_options={"allow_read_errors_with_report": (OSError, KeyError),
                         }
     )
+
+    ## cutflow table per dataset, also saved next to the output
+    cf_all = out.get("cutflow", {})
+    if cf_all:
+        import json
+        steps = sorted({k for cf in cf_all.values() for k in cf})
+        total = {k: sum(cf.get(k, 0) for cf in cf_all.values()) for k in steps}
+        for name, cf in list(cf_all.items()) + [("TOTAL", total)]:
+            print(f"\n=== cutflow: {name} ({out_label}) ===")
+            prev = None
+            for k in steps:
+                n = cf.get(k, 0)
+                rel = f"{100. * n / prev:6.2f}% of previous" if prev else ""
+                print(f"  {k:55s} {n:>12d}   {rel}")
+                prev = n
+        os.makedirs(out_folder_json, exist_ok=True)
+        with open(f"{out_folder_json}cutflow_{args.sample}.json", "w") as fp:
+            json.dump({"per_dataset": cf_all, "total": total}, fp, indent=2)
+        print(f"\ncutflow saved to {out_folder_json}cutflow_{args.sample}.json")
 
     elapsed = time.time() - tic 
     print(f"Finished in {elapsed:.1f}s")
