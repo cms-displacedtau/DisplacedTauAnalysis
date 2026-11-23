@@ -459,6 +459,9 @@ def cosmic_tagging(events):
     dup = (abs(eta_a - eta_b) < COSMIC_DUP_DETA) & (abs(_delta_phi(phi_a, phi_b)) < COSMIC_DUP_DPHI)
     coll = (_cos_angle(eta_a, phi_a, eta_b, phi_b) > COSMIC_COLL_COSA) & ~dup
     flag = dup | coll
+    ## stored for every era; 2022F (no outertrack/segment branches) uses them to drop pairs stage 1 can't resolve
+    dup_pair = ak.to_numpy(ak.any(dup, axis=1))     # strict duplicate: |deta| < 0.01 and |dphi| < 0.001
+    coll_pair = ak.to_numpy(ak.any(coll, axis=1))   # collinear, not duplicate: inner cosA > 0.90
 
     s1_available = all(f in mu.fields for f in ("outertrack_pt", "outertrack_eta", "outertrack_phi",
                                                 "nSeg", "sumSegX", "sumSegY", "sumSegZ"))
@@ -494,16 +497,23 @@ def cosmic_tagging(events):
     s2 = ak.to_numpy(ak.any(cos_cand < COSMIC_B2B_COSA, axis=1))
 
     ## stage 3: timing of the highest-pT upper (phi > 0) and lower (phi < 0) DisMuon
-    up, lo = mu[phi > 0], mu[phi < 0]
-    up_lead = ak.firsts(up[ak.argmax(up["pt"], axis=1, keepdims=True)])
-    lo_lead = ak.firsts(lo[ak.argmax(lo["pt"], axis=1, keepdims=True)])
-    s3 = ((up_lead["timeNDof"] > COSMIC_TIME_NDOF) & (lo_lead["timeNDof"] > COSMIC_TIME_NDOF)
-          & ((up_lead["timeAtIpInOut"] - lo_lead["timeAtIpInOut"]) < COSMIC_DT))
-    s3 = ak.to_numpy(ak.fill_none(s3, False))   # None = no upper/lower pair
+    s3_available = all(f in mu.fields for f in ("timeAtIpInOut", "timeNDof"))
+    if s3_available:
+        up, lo = mu[phi > 0], mu[phi < 0]
+        up_lead = ak.firsts(up[ak.argmax(up["pt"], axis=1, keepdims=True)])
+        lo_lead = ak.firsts(lo[ak.argmax(lo["pt"], axis=1, keepdims=True)])
+        s3 = ((up_lead["timeNDof"] > COSMIC_TIME_NDOF) & (lo_lead["timeNDof"] > COSMIC_TIME_NDOF)
+              & ((up_lead["timeAtIpInOut"] - lo_lead["timeAtIpInOut"]) < COSMIC_DT))
+        s3 = ak.to_numpy(ak.fill_none(s3, False))   # None = no upper/lower pair
+    else:
+        s3 = np.zeros(len(events), dtype=bool)
 
     events = ak.with_field(events, s1, "cosmic_s1")
     events = ak.with_field(events, s2, "cosmic_s2")
     events = ak.with_field(events, s3, "cosmic_s3")
     events = ak.with_field(events, s1 | s2 | s3, "cosmic_tag")
     events = ak.with_field(events, np.full(len(events), s1_available), "cosmic_s1_available")
+    events = ak.with_field(events, dup_pair, "cosmic_dup_pair")
+    events = ak.with_field(events, coll_pair, "cosmic_coll_pair")
+    events = ak.with_field(events, np.full(len(events), s3_available), "cosmic_s3_available")
     return events
