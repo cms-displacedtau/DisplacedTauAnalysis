@@ -17,12 +17,18 @@ Commit before every large run and record the hash here (`git log -1 --oneline`).
 - Known issue: skim chunk `Stau_300_1000mm/nano_3_0_18707.root` has 0 entries (the skim job failed while writing it;
   the skim never writes empty files on purpose). The same chunk in v20 has 10666 entries.
   Effect: v19/SR Stau_300_1000mm is missing 198 events (~12% of that point). All other v19 signal chunks are complete.
+- Known issue (found 2026-11-24): the v19 skim processed only part of Stau_100_100mm. Sum of gen weights over the
+  processed lumis is 451539 in v19 vs 806884 in v20 (v20 matches the other points, ~0.8M). v19 results for this point
+  use ~44% fewer MC events; check that their sumw came from the same skim version as their events.
 
 ### v20
 - Same as v19, but the DisMuon collection is NOT filtered: every DisMuon is kept
   (the event still needs >=1 DisMuon pT>20 |eta|<2.4). Needed for Method C / cosmic partner legs.
 - Skim code commit: 4262a66c. Run with: 6e9eb889 (signal)
 - Signal: preprocess check shows no files missing. Backgrounds: <fill in as they are done>
+- Signal sum of gen weights: `plotting/plots_config/Summer22_CHS_v19/mutau/v20/all_total_sumw.json`
+  (make_sum_genw_json.py --skimversion v20, reading the skim from store/user). All 36 points non-zero, genWeight = 1.
+  Identical to v19 except Stau_300_1000mm (+13.8%, the empty v19 chunk) and Stau_100_100mm (+78.7%, see v19).
 
 ## Selections — `selected/Summer22_CHS_v19/mutau/<skimversion>/<selection>[_<tag>]/`
 
@@ -49,3 +55,14 @@ Commit before every large run and record the hash here (`git log -1 --oneline`).
   by scikit-hep vector from DisMuon px/py, which are stored at low precision (e.g. px=27.0, py=13.125 -> 30.021 vs
   stored pt 29.974). Affects every `.pt` cut on DisMuon since before Method C (v19 and Daniel's code too).
   Fix (cut on ["pt"] or drop px/py at load) to be decided; would be a new tagged selection.
+
+### v20/CosmicEst_dupflag
+- CosmicEst (all SR cuts except the jet score; data blinded: untagged events with score > 0.8 removed).
+- cosmic_tagging() now also stores cosmic_dup_pair (strict duplicate: |deta| < 0.01, |dphi| < 0.001),
+  cosmic_coll_pair (collinear, inner cosA > 0.90, not duplicate) and cosmic_s3_available. Stage 3 is skipped
+  (s3 = False) if the timing branches are missing. Tags are unchanged vs the previous code.
+- Commit: 8120739
+- Data: JetMET_Run2022E, F, G (one run, same code). E+G and F are separate ABCDs.
+  2022F has no outer-track/segment branches, so stage 1 is unavailable there; plot_cosmic_regions.py drops F events
+  with a duplicate/collinear pair (0 dropped in E+G).
+- Signal: <fill in when the --sample signal run is done>
