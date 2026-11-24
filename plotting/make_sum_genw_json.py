@@ -22,7 +22,7 @@ parser.add_argument(
 	help='If listing skimmed files, select which version of the inputs')
 args = parser.parse_args()
 
-processed_json_folder = f'/eos/uscms/store/group/lpcdisptau/bskipwor/displacedTaus/skim/{args.nanov}/{args.skim}/{args.skimversion}/'
+processed_json_folder = f'/eos/uscms/store/user/lpcdisptau/bskipwor/displacedTaus/skim/{args.nanov}/{args.skim}/{args.skimversion}/'
 print(f"Processed fileset: {processed_json_folder}")
 outdir = Path(f'plots_config/{args.nanov}/{args.skim}/{args.skimversion}')
 if not outdir.exists():
